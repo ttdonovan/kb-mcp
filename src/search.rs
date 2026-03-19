@@ -136,7 +136,7 @@ impl SearchEngine {
                 continue;
             }
 
-            let excerpt = doc.body.lines().take(3).collect::<Vec<_>>().join("\n");
+            let excerpt = crate::format::extract_summary(&doc.body);
 
             results.push(SearchResult {
                 doc_index,

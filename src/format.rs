@@ -152,7 +152,7 @@ pub fn format_write(path: &str, collection: &str, title: &str, tags: &[String]) 
 /// Falls back to the first non-empty paragraph if no H1 is found.
 /// This powers `kb_context` — agents get a meaningful preview without
 /// reading the full document, saving 90%+ tokens on scan-heavy workflows.
-fn extract_summary(body: &str) -> String {
+pub fn extract_summary(body: &str) -> String {
     let mut lines = body.lines().peekable();
     let mut found_heading = false;
 
