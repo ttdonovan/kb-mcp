@@ -1,0 +1,29 @@
+[package]
+name = "kb-mcp"
+version = "0.2.0"
+edition = "2024"
+description = "MCP server + CLI for markdown knowledge bases"
+license = "MIT"
+repository = "https://github.com/ttdonovan/kb-mcp"
+
+[dependencies]
+# MCP server
+rmcp = { version = "1.1", features = ["server", "transport-io", "schemars"] }
+schemars = "1.0"
+
+# Configuration
+ron = "0.12"
+
+# Common
+anyhow = "1"
+chrono = "0.4"
+clap = { version = "4", features = ["derive"] }
+dirs = "6"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+sha2 = "0.10"
+tantivy = "0.25"
+tokio = { version = "1", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }

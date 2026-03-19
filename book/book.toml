@@ -1,0 +1,19 @@
+[book]
+title = "kb-mcp"
+authors = ["Tanner Donovan"]
+language = "en"
+src = "src"
+
+[preprocessor.mermaid]
+command = "mdbook-mermaid"
+
+[output.html]
+default-theme = "coal"
+preferred-dark-theme = "coal"
+git-repository-url = "https://github.com/ttdonovan/kb-mcp"
+edit-url-template = "https://github.com/ttdonovan/kb-mcp/edit/main/{path}"
+no-section-label = false
+
+[output.html.fold]
+enable = true
+level = 1

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "kb": {
+      "command": "kb-mcp",
+      "args": []
+    }
+  }
+}

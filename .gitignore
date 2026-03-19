@@ -1,0 +1,14 @@
+/target
+/book/book
+.DS_Store
+.env
+.claude/settings.local.json
+collections.ron
+
+# Obsidian — commit app/appearance/plugin-list, ignore local state
+vault/.obsidian/workspace.json
+vault/.obsidian/workspace-mobile.json
+vault/.obsidian/plugins/
+vault/.obsidian/themes/
+vault/.obsidian/hotkeys.json
+vault/.obsidian/graph.json
