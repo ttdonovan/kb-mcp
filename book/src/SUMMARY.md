@@ -22,3 +22,4 @@
 
 - [Architecture](development/architecture.md)
 - [Adding Tools](development/adding-tools.md)
+- [ZeroClaw Researcher Agent](development/agents/researcher.md)
