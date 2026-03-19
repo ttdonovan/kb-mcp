@@ -6,6 +6,27 @@ Indexes markdown collections into a searchable BM25 index and exposes them
 as [MCP](https://modelcontextprotocol.io/) tools. Configured entirely via
 RON files — no hardcoded paths or project-specific values.
 
+## Quick Start
+
+```sh
+# Clone and build
+git clone https://github.com/ttdonovan/kb-mcp.git
+cd kb-mcp
+cargo install --path .
+
+# Try it — the example config indexes this project's own vault and docs
+cp collections.example.ron collections.ron
+
+# Search the included AI agent memory vault
+kb-mcp list-sections
+kb-mcp search --query "cognitive memory"
+kb-mcp context --path "concepts/cognitive-memory-model.md"
+kb-mcp get-document --path "concepts/retrieval-strategies.md"
+```
+
+To use with your own markdown collections, edit `collections.ron` to
+point at your directories. See [Configuration](#configuration) below.
+
 ## Install
 
 ```sh
