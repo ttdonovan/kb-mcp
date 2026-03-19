@@ -9,6 +9,10 @@
 - [MCP Server](usage/mcp-server.md)
 - [CLI](usage/cli.md)
 
+# Agents
+
+- [Researcher](agents/researcher.md)
+
 # Reference
 
 - [Tools](reference/tools.md)

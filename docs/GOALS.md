@@ -31,9 +31,16 @@ scripting, and debugging don't require an MCP client.
 the index. Edits are visible immediately. The index is for search and
 lookup — not content serving.
 
-**Simple until proven insufficient.** In-memory Tantivy index on startup
-is fine for hundreds of documents. Persistent storage, vector search, and
-incremental reindex come when the simple approach hits real limits.
+**Simple until proven insufficient.** Start with the simplest approach
+that works. Persistent storage, vector search, and incremental reindex
+come when the simple approach hits real limits.
+
+**Dogfood everything.** This project is both the tool and a practical
+example of using it. The vault documents AI agent memory. The
+`collections.example.ron` indexes the project's own docs. The container
+agent (planned) uses kb-mcp to research and curate the vault. Every
+feature we build, we also consume — if it doesn't work well for us, it
+won't work well for anyone.
 
 ## Current State
 
@@ -43,12 +50,15 @@ Working standalone binary with:
 - 6 MCP tools: `list_sections`, `search`, `get_document`, `kb_context`,
   `kb_write`, `reindex`
 - Full CLI parity for all tools
-- In-memory Tantivy BM25 index rebuilt on startup
+- Persistent BM25 search via memvid-core `.mv2` storage
+- Incremental reindex via blake3 content hashing
+- Smart markdown chunking for better search precision
+- Crash-safe WAL for write durability
 - Tested against ~130 documents across 27 sections
 
 ## Roadmap
 
-### Phase 1: Persistent Storage (memvid-core)
+### ~~Phase 1: Persistent Storage (memvid-core)~~ (Complete)
 
 Replace the in-memory Tantivy index with memvid-core's `.mv2` persistent
 storage. Each collection gets its own `.mv2` file.

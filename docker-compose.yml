@@ -1,0 +1,57 @@
+# kb-mcp researcher agent
+#
+# Usage:
+#   docker compose build
+#   docker compose --profile dev run --rm researcher zeroclaw agent
+#   docker compose run --rm researcher kb-mcp list-sections
+
+services:
+  researcher:
+    build: .
+    profiles: [dev]
+    volumes:
+      # Persistent workspace for agent runtime state
+      - researcher-workspace:/workspace
+
+      # Vault mounted read-write — agent writes here, human reviews on host
+      - ./vault:/workspace/vault
+
+      # Agent identity and config — read-only, immutable at runtime
+      - ./agents/researcher/workspace/IDENTITY.md:/workspace/IDENTITY.md:ro
+      - ./agents/researcher/workspace/SOUL.md:/workspace/SOUL.md:ro
+      - ./agents/researcher/workspace/collections.ron:/workspace/collections.ron:ro
+
+      # ZeroClaw config — ZEROCLAW_WORKSPACE env var points here
+      - ./agents/researcher/config:/workspace/config:ro
+
+      # Agent skills — read-only
+      - ./agents/researcher/workspace/skills:/workspace/skills:ro
+
+      # Earl templates — read-only
+      - ./templates:/workspace/templates:ro
+
+    # Security: read-only root filesystem
+    read_only: true
+
+    # Writable tmpfs — ZeroClaw needs .zeroclaw for config/state,
+    # and /tmp for general scratch. Both cleared on restart.
+    tmpfs:
+      - /tmp:size=64M
+      - /home/agent/.zeroclaw:size=32M
+      - /home/agent/.cache:size=64M
+
+    # Localhost-only — no external network exposure
+    ports:
+      - "127.0.0.1:42710:42710"
+
+    # Host access for local Ollama
+    extra_hosts:
+      - "host-gateway:host-gateway"
+
+    # LLM provider keys (from .env file, only needed for cloud providers)
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+
+volumes:
+  researcher-workspace:

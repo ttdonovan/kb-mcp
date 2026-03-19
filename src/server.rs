@@ -21,6 +21,7 @@ pub struct KbMcpServer {
     pub(crate) index: Arc<RwLock<Index>>,
     pub(crate) search_engine: Arc<SearchEngine>,
     pub(crate) collections: Arc<Vec<ResolvedCollection>>,
+    pub(crate) cache_dir: std::path::PathBuf,
     tool_router: rmcp::handler::server::router::tool::ToolRouter<Self>,
 }
 
@@ -29,11 +30,13 @@ impl KbMcpServer {
         index: Index,
         search_engine: SearchEngine,
         collections: Vec<ResolvedCollection>,
+        cache_dir: std::path::PathBuf,
     ) -> Self {
         Self {
             index: Arc::new(RwLock::new(index)),
             search_engine: Arc::new(search_engine),
             collections: Arc::new(collections),
+            cache_dir,
             tool_router: tools::combined_router(),
         }
     }

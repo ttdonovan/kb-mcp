@@ -55,3 +55,23 @@ run *args:
 # Search shorthand (e.g., just search "rate limits")
 search query:
     @cargo run -- search --query "{{query}}"
+
+# =============================================================================
+# Agent
+# =============================================================================
+
+# Build researcher container image
+agent-build:
+    @docker compose --profile dev build
+
+# Interactive research session
+agent-research:
+    @docker compose --profile dev run --rm researcher zeroclaw agent
+
+# Research a specific topic (e.g., just agent-research-topic "HNSW vector search")
+agent-research-topic topic:
+    @docker compose --profile dev run --rm researcher zeroclaw agent -m "Research the following topic and add relevant findings to the vault: {{topic}}"
+
+# Check what the agent can see in the vault
+agent-vault-status:
+    @docker compose --profile dev run --rm researcher kb-mcp list-sections

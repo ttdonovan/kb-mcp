@@ -1,28 +1,22 @@
-//! BM25 full-text search via Tantivy.
+//! BM25 full-text search via memvid-core.
 //!
-//! Builds an in-RAM index from all documents across all collections. Search
-//! queries run against the full index; collection and section filtering happen
-//! post-query because Tantivy's STRING fields don't support efficient pre-filtering
-//! in a combined query. The 5× over-fetch compensates for post-filter reduction.
+//! Each collection has its own `.mv2` file with an embedded Tantivy index.
+//! Search queries fan out across collections (unless filtered), results are
+//! merged by score and deduplicated by URI (one result per document, highest-
+//! scoring chunk wins).
 
-use tantivy::collector::TopDocs;
-use tantivy::query::QueryParser;
-use tantivy::schema::*;
-use tantivy::snippet::SnippetGenerator;
-use tantivy::{Index, IndexWriter, TantivyDocument};
+use std::collections::HashMap;
+use std::sync::Mutex;
 
+use memvid_core::{AclEnforcementMode, Memvid, SearchRequest};
+
+use crate::store;
 use crate::types::Document;
 
-/// Wraps a Tantivy in-RAM index. Rebuilt from scratch on reindex — this is
-/// fast enough for hundreds of documents and avoids incremental update complexity.
+/// Holds per-collection Memvid handles behind a Mutex.
+/// `search()` requires `&mut self` on Memvid even for reads, so Mutex is required.
 pub struct SearchEngine {
-    index: Index,
-    path_field: Field,
-    title_field: Field,
-    body_field: Field,
-    tags_field: Field,
-    section_field: Field,
-    collection_field: Field,
+    stores: Mutex<HashMap<String, Memvid>>,
 }
 
 pub struct SearchResult {
@@ -32,70 +26,26 @@ pub struct SearchResult {
 }
 
 impl SearchEngine {
-    pub fn build(documents: &[Document]) -> Self {
-        let mut schema_builder = Schema::builder();
-
-        let path_field = schema_builder.add_text_field("path", STRING | STORED);
-        let title_field = schema_builder.add_text_field("title", TEXT | STORED);
-        let body_field = schema_builder.add_text_field("body", TEXT | STORED);
-        let tags_field = schema_builder.add_text_field("tags", TEXT | STORED);
-        let section_field = schema_builder.add_text_field("section", STRING | STORED);
-        let collection_field = schema_builder.add_text_field("collection", STRING | STORED);
-
-        let schema = schema_builder.build();
-        let index = Index::create_in_ram(schema);
-
-        let engine = SearchEngine {
-            index,
-            path_field,
-            title_field,
-            body_field,
-            tags_field,
-            section_field,
-            collection_field,
-        };
-
-        let mut writer = engine.writer();
-        engine.add_documents(&mut writer, documents);
-        writer.commit().expect("failed to commit index");
-        drop(writer);
-
-        engine
-    }
-
-    fn writer(&self) -> IndexWriter {
-        self.index
-            .writer(15_000_000)
-            .expect("failed to create index writer")
-    }
-
-    fn add_documents(&self, writer: &mut IndexWriter, documents: &[Document]) {
-        for doc in documents {
-            let mut tantivy_doc = TantivyDocument::new();
-            tantivy_doc.add_text(self.path_field, &doc.path);
-            tantivy_doc.add_text(self.title_field, &doc.title);
-            tantivy_doc.add_text(self.body_field, &doc.body);
-            tantivy_doc.add_text(self.tags_field, doc.tags.join(" "));
-            tantivy_doc.add_text(self.section_field, &doc.section);
-            tantivy_doc.add_text(self.collection_field, &doc.collection);
-
-            writer
-                .add_document(tantivy_doc)
-                .expect("failed to add document");
+    /// Create from a map of collection_name → Memvid handle.
+    pub fn new(stores: HashMap<String, Memvid>) -> Self {
+        Self {
+            stores: Mutex::new(stores),
         }
     }
 
-    /// Replace the entire index contents. Used by `reindex` and `kb_write` to
-    /// pick up filesystem changes without restarting the process.
-    pub fn rebuild(&self, documents: &[Document]) {
-        let mut writer = self.writer();
-        writer
-            .delete_all_documents()
-            .expect("failed to clear index");
-        self.add_documents(&mut writer, documents);
-        writer.commit().expect("failed to commit reindex");
+    /// Replace the Memvid handle for a single collection (after kb_write or reindex).
+    pub fn replace_store(&self, collection_name: &str, mem: Memvid) {
+        let mut stores = self.stores.lock().unwrap();
+        stores.insert(collection_name.to_string(), mem);
     }
 
+    /// Replace all stores (after full reindex).
+    pub fn replace_all_stores(&self, new_stores: HashMap<String, Memvid>) {
+        let mut stores = self.stores.lock().unwrap();
+        *stores = new_stores;
+    }
+
+    /// Search across collections via memvid-core's embedded Tantivy.
     pub fn search(
         &self,
         documents: &[Document],
@@ -108,74 +58,85 @@ impl SearchEngine {
             return vec![];
         }
 
-        let reader = self.index.reader().expect("failed to create reader");
-        let searcher = reader.searcher();
+        let mut stores = self.stores.lock().unwrap();
+        let mut all_hits: Vec<(String, String, f32)> = Vec::new(); // (collection, uri, score)
 
-        let query_parser = QueryParser::for_index(
-            &self.index,
-            vec![self.title_field, self.body_field, self.tags_field],
-        );
-
-        let query = match query_parser.parse_query(query_str) {
-            Ok(q) => q,
-            Err(_) => return vec![],
-        };
-
-        let needs_filter = collection.is_some() || scope.is_some();
-        let limit = if needs_filter {
-            max_results * 5
+        // Fan out: query each relevant collection's .mv2
+        let collection_names: Vec<String> = if let Some(coll) = collection {
+            vec![coll.to_string()]
         } else {
-            max_results
+            stores.keys().cloned().collect()
         };
 
-        let top_docs = match searcher.search(&query, &TopDocs::with_limit(limit)) {
-            Ok(results) => results,
-            Err(_) => return vec![],
-        };
+        for coll_name in &collection_names {
+            let Some(mem) = stores.get_mut(coll_name) else {
+                continue;
+            };
 
-        let snippet_generator = SnippetGenerator::create(&searcher, &*query, self.body_field)
-            .unwrap_or_else(|_| {
-                SnippetGenerator::create(&searcher, &*query, self.title_field)
-                    .expect("failed to create snippet generator")
-            });
+            let request = SearchRequest {
+                query: query_str.to_string(),
+                top_k: max_results * 3, // over-fetch for dedup + post-filter
+                snippet_chars: 300,
+                uri: None,
+                scope: None,
+                cursor: None,
+                as_of_frame: None,
+                as_of_ts: None,
+                no_sketch: false,
+                acl_context: None,
+                acl_enforcement_mode: AclEnforcementMode::Audit,
+            };
 
+            if let Ok(response) = mem.search(request) {
+                for hit in response.hits {
+                    let score = hit.score.unwrap_or(0.0);
+                    all_hits.push((coll_name.clone(), hit.uri.clone(), score));
+                }
+            }
+        }
+
+        drop(stores); // release lock before document mapping
+
+        // Deduplicate by URI — keep highest-scoring chunk per document
+        let mut best_by_uri: HashMap<String, (String, f32)> = HashMap::new();
+        for (coll, uri, score) in all_hits {
+            let entry = best_by_uri
+                .entry(uri.clone())
+                .or_insert_with(|| (coll.clone(), score));
+            if score > entry.1 {
+                *entry = (coll, score);
+            }
+        }
+
+        // Sort by score descending
+        let mut ranked: Vec<(String, String, f32)> = best_by_uri
+            .into_iter()
+            .map(|(uri, (coll, score))| (coll, uri, score))
+            .collect();
+        ranked.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap_or(std::cmp::Ordering::Equal));
+
+        // Map back to document index + apply scope filter
         let mut results = Vec::new();
+        for (_, uri, score) in ranked {
+            let Some((_coll_name, rel_path)) = store::parse_uri(&uri) else {
+                continue;
+            };
 
-        for (score, doc_address) in top_docs {
-            let retrieved: TantivyDocument = searcher
-                .doc(doc_address)
-                .expect("failed to retrieve document");
-
-            let path = retrieved
-                .get_first(self.path_field)
-                .and_then(|v| v.as_str())
-                .unwrap_or_default();
-
-            let doc_index = match documents.iter().position(|d| d.path == path) {
+            let doc_index = match documents.iter().position(|d| d.path == rel_path) {
                 Some(idx) => idx,
                 None => continue,
             };
 
             let doc = &documents[doc_index];
 
-            // Filter by collection
-            if let Some(coll) = collection
-                && doc.collection != coll {
-                    continue;
-                }
-
-            // Filter by section scope
+            // Post-filter by section scope
             if let Some(scope) = scope
-                && !doc.section.starts_with(scope) {
-                    continue;
-                }
+                && !doc.section.starts_with(scope)
+            {
+                continue;
+            }
 
-            let snippet = snippet_generator.snippet_from_doc(&retrieved);
-            let excerpt = if snippet.is_empty() {
-                doc.body.lines().take(3).collect::<Vec<_>>().join("\n")
-            } else {
-                snippet.fragment().to_string()
-            };
+            let excerpt = doc.body.lines().take(3).collect::<Vec<_>>().join("\n");
 
             results.push(SearchResult {
                 doc_index,

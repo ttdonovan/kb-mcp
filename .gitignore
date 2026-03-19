@@ -3,7 +3,7 @@
 .DS_Store
 .env
 .claude/settings.local.json
-collections.ron
+/collections.ron
 
 # Obsidian — commit app/appearance/plugin-list, ignore local state
 vault/.obsidian/workspace.json
@@ -12,3 +12,6 @@ vault/.obsidian/plugins/
 vault/.obsidian/themes/
 vault/.obsidian/hotkeys.json
 vault/.obsidian/graph.json
+
+# Agent — commit examples, ignore active config and secrets
+agents/*/config/config.toml

@@ -9,27 +9,36 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use crate::config::{ResolvedCollection, SectionDef};
+use crate::store;
 use crate::types::{Document, Section};
 
 /// The in-memory document index. Rebuilt on startup and on `reindex` calls.
+/// Also carries per-collection content hashes for incremental `.mv2` sync.
 pub struct Index {
     pub documents: Vec<Document>,
     pub sections: Vec<Section>,
+    /// Per-collection content hashes: collection_name → (relative_path → blake3 hash).
+    /// Used by `store::sync_collection` to determine which docs changed.
+    pub content_hashes: HashMap<String, store::HashIndex>,
 }
 
 impl Index {
     pub fn build(collections: &[ResolvedCollection]) -> Self {
         let mut documents = Vec::new();
+        let mut content_hashes: HashMap<String, store::HashIndex> = HashMap::new();
 
         for collection in collections {
             if collection.path.is_dir() {
+                let mut coll_hashes = store::HashIndex::new();
                 scan_dir(
                     &collection.path,
                     &collection.path,
                     &collection.name,
                     &collection.sections,
                     &mut documents,
+                    &mut coll_hashes,
                 );
+                content_hashes.insert(collection.name.clone(), coll_hashes);
             }
         }
 
@@ -38,6 +47,7 @@ impl Index {
         Index {
             documents,
             sections,
+            content_hashes,
         }
     }
 
@@ -59,6 +69,7 @@ fn scan_dir(
     collection_name: &str,
     section_defs: &[SectionDef],
     docs: &mut Vec<Document>,
+    hashes: &mut store::HashIndex,
 ) {
     let entries = match std::fs::read_dir(dir) {
         Ok(e) => e,
@@ -68,21 +79,26 @@ fn scan_dir(
     for entry in entries.flatten() {
         let path = entry.path();
         if path.is_dir() {
-            scan_dir(base, &path, collection_name, section_defs, docs);
+            scan_dir(base, &path, collection_name, section_defs, docs, hashes);
         } else if path.extension().is_some_and(|e| e == "md")
-            && let Some(doc) = parse_document(base, &path, collection_name, section_defs) {
-                docs.push(doc);
-            }
+            && let Some((doc, hash)) = parse_document_with_hash(base, &path, collection_name, section_defs)
+        {
+            hashes.insert(doc.path.clone(), hash);
+            docs.push(doc);
+        }
     }
 }
 
-fn parse_document(
+/// Parse a markdown file into a Document and compute its blake3 content hash.
+/// Returns both so the caller can build the hash index alongside the document list.
+fn parse_document_with_hash(
     base: &Path,
     file_path: &PathBuf,
     collection_name: &str,
     section_defs: &[SectionDef],
-) -> Option<Document> {
+) -> Option<(Document, String)> {
     let content = std::fs::read_to_string(file_path).ok()?;
+    let content_hash = store::hash_content(content.as_bytes());
     let rel_path = file_path.strip_prefix(base).ok()?;
     let rel_str = rel_path.to_string_lossy().to_string();
 
@@ -110,18 +126,20 @@ fn parse_document(
                 .unwrap_or_default()
         });
 
-    // Match section against definitions for description lookup
     let _ = section_defs; // used by build_sections, not here
 
-    Some(Document {
-        path: rel_str,
-        title,
-        tags,
-        body,
-        section,
-        collection: collection_name.to_string(),
-        frontmatter,
-    })
+    Some((
+        Document {
+            path: rel_str,
+            title,
+            tags,
+            body,
+            section,
+            collection: collection_name.to_string(),
+            frontmatter,
+        },
+        content_hash,
+    ))
 }
 
 /// Parse YAML frontmatter delimited by `---`. Returns all fields as a HashMap

@@ -1,0 +1,35 @@
+# ZeroClaw config — Researcher Agent (Anthropic prod)
+#
+# Copy to config.toml. Set ANTHROPIC_API_KEY in .env.
+
+# ── Provider ──────────────────────────────────────────────
+default_provider = "anthropic"
+default_model = "claude-sonnet-4-5-20250514"
+
+# ── Agent ─────────────────────────────────────────────────
+[agent]
+max_tool_iterations = 100
+
+# ── MCP Servers ───────────────────────────────────────────
+[mcp]
+enabled = true
+
+[[mcp.servers]]
+name = "kb"
+transport = "stdio"
+command = "kb-mcp"
+
+# ── Web Access ────────────────────────────────────────────
+# DuckDuckGo search + fetching result pages
+[web_fetch]
+enabled = true
+allowed_domains = ["*"]
+
+# ── Autonomy ─────────────────────────────────────────────
+[autonomy]
+level = "full"
+allowed_commands = ["kb-mcp", "earl"]
+
+# ── Skills ────────────────────────────────────────────────
+[skills]
+open_skills_enabled = false

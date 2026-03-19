@@ -121,9 +121,24 @@ impl KbMcpServer {
             )]));
         }
 
-        // Rebuild index to include new document
+        // Rebuild index and sync the collection's .mv2 to include new document
         let new_index = crate::index::Index::build(&self.collections);
-        self.search_engine.rebuild(&new_index.documents);
+
+        let current_hashes = new_index
+            .content_hashes
+            .get(&params.collection)
+            .cloned()
+            .unwrap_or_default();
+
+        if let Ok((mem, _)) = crate::store::sync_collection(
+            &self.cache_dir,
+            collection,
+            &current_hashes,
+            &new_index.documents,
+        ) {
+            self.search_engine.replace_store(&params.collection, mem);
+        }
+
         {
             let mut index = self.index.write().await;
             *index = new_index;

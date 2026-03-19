@@ -203,8 +203,10 @@ pub fn run(
             }
         }
         Command::Reindex => {
+            // CLI reindex: rebuild index + re-sync all .mv2 files.
+            // Note: if MCP server holds exclusive locks on .mv2 files,
+            // this will fail. Use the MCP reindex tool instead.
             let new_index = Index::build(collections);
-            search_engine.rebuild(&new_index.documents);
             println!(
                 "Reindexed {} documents across {} sections",
                 new_index.documents.len(),

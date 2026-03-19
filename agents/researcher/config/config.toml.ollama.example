@@ -1,0 +1,39 @@
+# ZeroClaw config — Researcher Agent (Ollama dev)
+#
+# Copy to config.toml. Ollama must be running on the host.
+
+# ── Provider ──────────────────────────────────────────────
+default_provider = "ollama"
+default_model = "qwen2.5:14b"
+api_url = "http://host-gateway:11434"
+
+# ── Agent ─────────────────────────────────────────────────
+[agent]
+max_tool_iterations = 100
+
+# ── MCP Servers ───────────────────────────────────────────
+[mcp]
+enabled = true
+
+[[mcp.servers]]
+name = "kb"
+transport = "stdio"
+command = "kb-mcp"
+
+# ── Web Access ────────────────────────────────────────────
+# DuckDuckGo search + fetching result pages
+[web_fetch]
+enabled = true
+allowed_domains = ["*"]
+
+# ── Autonomy ─────────────────────────────────────────────
+# "full" skips medium-risk approval prompts while still enforcing
+# guardrails (forbidden_paths, allowed_commands, high-risk block).
+# The container's read-only root + volume mounts provide the outer boundary.
+[autonomy]
+level = "full"
+allowed_commands = ["kb-mcp", "earl"]
+
+# ── Skills ────────────────────────────────────────────────
+[skills]
+open_skills_enabled = false

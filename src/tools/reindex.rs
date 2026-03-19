@@ -1,6 +1,9 @@
+use std::collections::HashMap;
+
 use rmcp::model::CallToolResult;
 
 use crate::server::KbMcpServer;
+use crate::store;
 
 pub(crate) fn router() -> rmcp::handler::server::router::tool::ToolRouter<KbMcpServer> {
     KbMcpServer::reindex_router()
@@ -17,7 +20,36 @@ impl KbMcpServer {
         let doc_count = new_index.documents.len();
         let section_count = new_index.sections.len();
 
-        self.search_engine.rebuild(&new_index.documents);
+        // Re-sync all .mv2 files against the filesystem
+        let mut new_stores = HashMap::new();
+        let mut total_changes = 0;
+
+        for collection in self.collections.iter() {
+            let current_hashes = new_index
+                .content_hashes
+                .get(&collection.name)
+                .cloned()
+                .unwrap_or_default();
+
+            match store::sync_collection(
+                &self.cache_dir,
+                collection,
+                &current_hashes,
+                &new_index.documents,
+            ) {
+                Ok((mem, changes)) => {
+                    total_changes += changes;
+                    new_stores.insert(collection.name.clone(), mem);
+                }
+                Err(e) => {
+                    return Ok(CallToolResult::error(vec![rmcp::model::Content::text(
+                        format!("Failed to sync collection '{}': {}", collection.name, e),
+                    )]));
+                }
+            }
+        }
+
+        self.search_engine.replace_all_stores(new_stores);
 
         {
             let mut index = self.index.write().await;
@@ -25,8 +57,8 @@ impl KbMcpServer {
         }
 
         let msg = format!(
-            "Reindexed {} documents across {} sections",
-            doc_count, section_count
+            "Reindexed {} documents across {} sections ({} changes synced)",
+            doc_count, section_count, total_changes
         );
         Ok(CallToolResult::success(vec![rmcp::model::Content::text(
             msg,

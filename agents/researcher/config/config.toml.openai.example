@@ -1,0 +1,44 @@
+# ZeroClaw config — Researcher Agent (OpenAI via VibeProxy)
+#
+# VibeProxy proxies a ChatGPT subscription OAuth token into an
+# OpenAI-compatible API. No API key needed.
+#
+# Install: https://github.com/automazeio/vibeproxy
+# Start:   vibeproxy (runs on localhost:8317)
+#
+# Copy to config.toml. No .env changes needed.
+
+# ── Provider ──────────────────────────────────────────────
+default_provider = "openai"
+default_model = "gpt-5.2"
+api_url = "http://host-gateway:8317/v1"
+
+# ── Agent ─────────────────────────────────────────────────
+# Research workflow needs many iterations: tool_search (deferred MCP) +
+# vault search + web search + page fetches + write + reindex
+[agent]
+max_tool_iterations = 100
+
+# ── MCP Servers ───────────────────────────────────────────
+[mcp]
+enabled = true
+
+[[mcp.servers]]
+name = "kb"
+transport = "stdio"
+command = "kb-mcp"
+
+# ── Web Access ────────────────────────────────────────────
+# DuckDuckGo search + fetching result pages
+[web_fetch]
+enabled = true
+allowed_domains = ["*"]
+
+# ── Autonomy ─────────────────────────────────────────────
+[autonomy]
+level = "full"
+allowed_commands = ["kb-mcp", "earl"]
+
+# ── Skills ────────────────────────────────────────────────
+[skills]
+open_skills_enabled = false

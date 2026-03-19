@@ -150,6 +150,24 @@ architecture diagrams. Source pages live in `book/src/` — some are
 `{{#include}}` wrappers that pull content from `docs/` so that
 documentation has a single source of truth.
 
+## Researcher Agent
+
+A containerized agent that uses kb-mcp to research AI agent memory topics
+and curate findings into the vault. Runs in a ZeroClaw container with
+web search via Earl.
+
+```sh
+# Setup (web search uses DuckDuckGo — no API key needed)
+cp agents/researcher/config/config.toml.ollama.example agents/researcher/config/config.toml
+
+# Build and run
+just agent-build
+just agent-research-topic "HNSW vector search"
+```
+
+See [agents/researcher/README.md](agents/researcher/README.md) for full
+setup and usage.
+
 ## Development
 
 ```sh

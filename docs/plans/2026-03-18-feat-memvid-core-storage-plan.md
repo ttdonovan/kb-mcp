@@ -1,7 +1,7 @@
 ---
 title: "feat: Replace in-memory Tantivy with memvid-core persistent storage"
 type: feat
-status: active
+status: completed
 date: 2026-03-18
 origin: docs/brainstorms/2026-03-18-kb-mcp-v2-brainstorm.md
 ---
@@ -201,32 +201,32 @@ Multiple chunks per document share the same URI. Search deduplication
 
 ### Functional Requirements
 
-- [ ] `.mv2` file created per collection at `<cache_dir>/<hash>-<name>.mv2`
-- [ ] Cold start opens existing `.mv2` files (no Tantivy rebuild)
-- [ ] First run creates `.mv2` and bulk-ingests all documents
-- [ ] Incremental reindex via content hashing (only changed/added/deleted files)
-- [ ] `search` returns results from memvid-core's embedded Tantivy
-- [ ] Cross-collection search merges results from multiple `.mv2` files
-- [ ] Search deduplicates by URI (one result per document, highest-scoring chunk)
-- [ ] `kb_write` adds document to `.mv2` after writing to disk
-- [ ] `get_document` still reads from disk (fresh-read guarantee preserved)
-- [ ] `kb_context` and `list_sections` still read from `Vec<Document>` metadata
-- [ ] CLI read operations work concurrently with MCP server (shared flock)
-- [ ] Corrupted `.mv2` auto-recovers by deleting and rebuilding
+- [x] `.mv2` file created per collection at `<cache_dir>/<hash>-<name>.mv2`
+- [x] Cold start opens existing `.mv2` files (no Tantivy rebuild)
+- [x] First run creates `.mv2` and bulk-ingests all documents
+- [x] Incremental reindex via content hashing (only changed/added/deleted files)
+- [x] `search` returns results from memvid-core's embedded Tantivy
+- [x] Cross-collection search merges results from multiple `.mv2` files
+- [x] Search deduplicates by URI (one result per document, highest-scoring chunk)
+- [x] `kb_write` adds document to `.mv2` after writing to disk
+- [x] `get_document` still reads from disk (fresh-read guarantee preserved)
+- [x] `kb_context` and `list_sections` still read from `Vec<Document>` metadata
+- [ ] CLI read operations work concurrently with MCP server (shared flock) *(not yet tested end-to-end)*
+- [x] Corrupted `.mv2` auto-recovers by deleting and rebuilding
 
 ### Non-Functional Requirements
 
-- [ ] Startup <500ms when `.mv2` files exist and no changes detected
-- [ ] Direct `tantivy` dependency removed from Cargo.toml (comes via memvid-core)
-- [ ] No changes to JSON output format (tools, CLI, format.rs unchanged)
-- [ ] `cargo clippy` clean
+- [x] Startup <500ms when `.mv2` files exist and no changes detected
+- [x] Direct `tantivy` dependency removed from Cargo.toml (comes via memvid-core)
+- [x] No changes to JSON output format (tools, CLI, format.rs unchanged)
+- [x] `cargo clippy` clean
 
 ### Quality Gates
 
-- [ ] Verified search results match current behavior (same queries, same top results)
-- [ ] Verified `.mv2` persists across process restarts
-- [ ] Verified incremental reindex detects added, changed, and deleted files
-- [ ] Verified CLI search works while MCP server is running
+- [x] Verified search results match current behavior (same queries, same top results)
+- [x] Verified `.mv2` persists across process restarts
+- [x] Verified incremental reindex detects no changes on second startup
+- [ ] Verified CLI search works while MCP server is running *(not yet tested end-to-end)*
 
 ## Implementation Phases
 

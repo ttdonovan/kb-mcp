@@ -218,13 +218,15 @@ graph LR
     style COL fill:#10b981,color:#fff
 ```
 
-- `RwLock` allows concurrent reads (search, get_document) with exclusive
-  writes (reindex, kb_write).
+- `Index` behind `RwLock` for metadata reads (most tools) with exclusive
+  writes during reindex/kb_write.
+- `SearchEngine` holds per-collection `Memvid` handles behind an internal
+  `Mutex`. Search requires `&mut self` on Memvid even for reads.
 - `get_document` reads fresh from disk via `server.rs::read_fresh()` — the
-  index is only used for path/title lookup, not content serving. This means
-  edits are visible immediately without reindex.
-- `kb_write` creates the file, then triggers a full index rebuild to make
-  the new document searchable.
+  index is only used for path/title lookup, not content serving. Edits are
+  visible immediately without reindex.
+- `kb_write` creates the file, syncs the collection's `.mv2`, and rebuilds
+  the in-memory `Index`.
 
 ## Fresh-Read Design
 
@@ -263,19 +265,27 @@ flowchart TD
     style ERR2 fill:#ef4444,color:#fff
 ```
 
-## Future: memvid-core Integration
+## Persistent Storage (memvid-core)
 
-The current implementation uses an in-memory Tantivy index rebuilt on
-every startup. The planned upgrade replaces this with memvid-core's
-persistent `.mv2` storage:
+Search is backed by memvid-core's `.mv2` persistent storage. Each
+collection gets its own `.mv2` file at `<cache_dir>/<hash>-<name>.mv2`.
 
-- Each collection gets a `.mv2` file at `~/.cache/kb-mcp/<hash>-<name>.mv2`
-- Startup opens existing files (sub-100ms) instead of scanning + indexing
-- Smart markdown chunking improves search precision on long documents
-- Content hashing enables incremental reindex (only changed files)
-- Crash-safe WAL protects against data loss
-- Vector search (HNSW + ONNX embeddings) available via `vec` feature flag
+- **Startup:** opens existing `.mv2` files, diffs content hashes against
+  a sidecar `.hashes` file, and only re-ingests changed documents
+- **Smart chunking:** memvid-core's structural chunker segments long
+  documents so queries match specific sections, not entire files
+- **Crash-safe WAL:** writes go through a write-ahead log inside the `.mv2`
+- **Deduplication:** search results are deduplicated by URI — one result
+  per document, highest-scoring chunk wins
 
-The `cache_dir` config field and hash-based namespacing are already in
-place for this transition. The search and index modules are the only code
-that changes — tools, CLI, config, and format modules remain untouched.
+The `Index` (Vec<Document>) continues to handle metadata operations
+(exact path lookup, frontmatter retrieval, section counting). Memvid is
+the search layer only — this two-layer design keeps the architecture
+simple while gaining persistent, incremental search.
+
+## Future: Vector Search
+
+Enable memvid-core's `vec` feature for HNSW vector similarity alongside
+BM25. This would add local ONNX embeddings and hybrid ranking via RRF
+fusion. The `.mv2` file format already supports vector indexes — the
+change is a feature flag and a new search mode.

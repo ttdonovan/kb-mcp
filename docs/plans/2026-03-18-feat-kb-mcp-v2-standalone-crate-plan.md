@@ -1,7 +1,7 @@
 ---
 title: "feat: kb-mcp v2 — Standalone Rust MCP Server for Markdown Knowledge Bases"
 type: feat
-status: active
+status: completed
 date: 2026-03-18
 origin: docs/brainstorms/2026-03-18-kb-mcp-v2-brainstorm.md
 ---
