@@ -2,6 +2,7 @@
 
 [Introduction](introduction.md)
 [Goals](goals.md)
+[Roadmap](roadmap.md)
 
 # Usage
 
