@@ -30,8 +30,9 @@ FROM rust:slim-bookworm AS build-kbmcp
 
 ARG KB_MCP_FEATURES
 
+# g++ required when hybrid feature enabled (tokenizers → esaxx-rs needs C++)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git pkg-config libssl-dev ca-certificates \
+    git pkg-config libssl-dev ca-certificates g++ \
     && rm -rf /var/lib/apt/lists/*
 
 RUN git clone --depth 1 https://github.com/ttdonovan/kb-mcp.git /tmp/kb \
