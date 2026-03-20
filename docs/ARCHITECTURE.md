@@ -283,9 +283,19 @@ The `Index` (Vec<Document>) continues to handle metadata operations
 the search layer only — this two-layer design keeps the architecture
 simple while gaining persistent, incremental search.
 
-## Future: Vector Search
+## Hybrid Search (optional)
 
-Enable memvid-core's `vec` feature for HNSW vector similarity alongside
-BM25. This would add local ONNX embeddings and hybrid ranking via RRF
-fusion. The `.mv2` file format already supports vector indexes — the
-change is a feature flag and a new search mode.
+Enable with `cargo build --features hybrid`. Adds HNSW vector similarity
+alongside BM25 via memvid-core's `vec` feature.
+
+- **Ingest:** `LocalTextEmbedder` (BGE-small-en-v1.5, 384 dims, local ONNX)
+  generates embeddings at document ingest time via `put_with_embedding()`
+- **Search:** `Memvid::ask(AskMode::Hybrid)` runs BM25 + vector in parallel
+  and fuses results via Reciprocal Rank Fusion (RRF, k=60)
+- **Query-time:** `VecEmbedder` adapter wraps the embedder for `ask()`
+- **Feature-gated:** All hybrid code behind `#[cfg(feature = "hybrid")]`.
+  Default build stays BM25-only with no ONNX dependency.
+
+The ONNX model (~34MB) must be present at `~/.cache/memvid/text-models/`.
+In the container, it's baked into the image at `/opt/memvid/text-models/`
+and symlinked by the entrypoint.

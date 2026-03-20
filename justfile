@@ -60,9 +60,13 @@ search query:
 # Agent
 # =============================================================================
 
-# Build researcher container image
+# Build researcher container image (BM25 only)
 agent-build:
     @docker compose --profile dev build
+
+# Build researcher container with hybrid search (BM25 + vector)
+agent-build-hybrid:
+    @docker compose --profile dev build --build-arg KB_MCP_FEATURES=hybrid
 
 # Interactive research session
 agent-research:

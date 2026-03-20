@@ -138,12 +138,14 @@ pub fn compute_diff(current: &HashIndex, stored: &HashIndex) -> SyncDiff {
 /// Sync a collection's .mv2 file against the filesystem.
 ///
 /// Opens or creates the .mv2 file, computes the diff against the sidecar,
-/// and ingests new/changed documents. Returns the number of documents synced.
+/// and ingests new/changed documents. When an embedder is provided (hybrid
+/// feature), documents are embedded for vector search alongside BM25.
 pub fn sync_collection(
     cache_dir: &Path,
     collection: &crate::config::ResolvedCollection,
     current_hashes: &HashIndex,
     documents: &[crate::types::Document],
+    #[cfg(feature = "hybrid")] embedder: &memvid_core::LocalTextEmbedder,
 ) -> Result<(memvid_core::Memvid, usize)> {
     ensure_cache_dir(cache_dir)?;
 
@@ -157,7 +159,6 @@ pub fn sync_collection(
         match memvid_core::Memvid::open(&mv2) {
             Ok(m) => m,
             Err(e) => {
-                // Corrupted — delete and rebuild from scratch
                 tracing::warn!("corrupted .mv2, rebuilding: {}", e);
                 let _ = std::fs::remove_file(&mv2);
                 memvid_core::Memvid::create(&mv2)
@@ -172,34 +173,44 @@ pub fn sync_collection(
     let changes = diff.to_add.len() + diff.to_remove.len();
 
     if changes == 0 {
-        // No changes — save the Memvid handle for search, update sidecar
         save_hashes(&hashes_file, current_hashes)?;
         return Ok((mem, 0));
     }
 
-    // For deletions, we need to rebuild the entire index since memvid-core
-    // doesn't support removing individual frames. If only additions, we can
-    // do an incremental ingest.
     let needs_full_rebuild = !diff.to_remove.is_empty() && !diff.is_fresh;
 
     if needs_full_rebuild {
-        // Drop and recreate .mv2
         drop(mem);
         let _ = std::fs::remove_file(&mv2);
         mem = memvid_core::Memvid::create(&mv2)
             .with_context(|| format!("failed to recreate .mv2: {}", mv2.display()))?;
 
-        // Ingest all current documents for this collection
-        ingest_documents(&mut mem, &collection.name, documents)?;
+        let coll_docs: Vec<&crate::types::Document> = documents
+            .iter()
+            .filter(|d| d.collection == collection.name)
+            .collect();
+
+        ingest_docs(
+            &mut mem,
+            &collection.name,
+            &coll_docs,
+            #[cfg(feature = "hybrid")]
+            embedder,
+        )?;
     } else {
-        // Incremental: only ingest new/changed docs
         let docs_to_add: Vec<&crate::types::Document> = documents
             .iter()
             .filter(|d| d.collection == collection.name && diff.to_add.contains(&d.path))
             .collect();
 
         if !docs_to_add.is_empty() {
-            ingest_document_refs(&mut mem, &collection.name, &docs_to_add)?;
+            ingest_docs(
+                &mut mem,
+                &collection.name,
+                &docs_to_add,
+                #[cfg(feature = "hybrid")]
+                embedder,
+            )?;
         }
     }
 
@@ -211,25 +222,13 @@ pub fn sync_collection(
     Ok((mem, changes))
 }
 
-/// Batch-ingest all documents for a collection into a Memvid handle.
-fn ingest_documents(
-    mem: &mut memvid_core::Memvid,
-    collection_name: &str,
-    documents: &[crate::types::Document],
-) -> Result<()> {
-    let coll_docs: Vec<&crate::types::Document> = documents
-        .iter()
-        .filter(|d| d.collection == collection_name)
-        .collect();
-
-    ingest_document_refs(mem, collection_name, &coll_docs)
-}
-
-/// Ingest a set of document references into a Memvid handle using batch mode.
-fn ingest_document_refs(
+/// Batch-ingest documents into a Memvid handle. When hybrid feature is
+/// enabled, each document is embedded via ONNX for vector search.
+fn ingest_docs(
     mem: &mut memvid_core::Memvid,
     collection_name: &str,
     docs: &[&crate::types::Document],
+    #[cfg(feature = "hybrid")] embedder: &memvid_core::LocalTextEmbedder,
 ) -> Result<()> {
     if docs.is_empty() {
         return Ok(());
@@ -251,8 +250,21 @@ fn ingest_document_refs(
             .search_text(&doc.body)
             .build();
 
-        mem.put_bytes_with_options(doc.body.as_bytes(), options)
-            .with_context(|| format!("failed to ingest: {}", doc.path))?;
+        #[cfg(feature = "hybrid")]
+        {
+            use memvid_core::EmbeddingProvider;
+            let embedding = embedder
+                .embed_text(&doc.body)
+                .with_context(|| format!("failed to embed: {}", doc.path))?;
+            mem.put_with_embedding_and_options(doc.body.as_bytes(), embedding, options)
+                .with_context(|| format!("failed to ingest: {}", doc.path))?;
+        }
+
+        #[cfg(not(feature = "hybrid"))]
+        {
+            mem.put_bytes_with_options(doc.body.as_bytes(), options)
+                .with_context(|| format!("failed to ingest: {}", doc.path))?;
+        }
     }
 
     mem.end_batch().context("failed to end batch")?;

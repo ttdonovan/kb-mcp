@@ -22,6 +22,13 @@ ZeroClaw container with kb-mcp + DuckDuckGo web search. Writes research
 findings to `vault/drafts/` for human review. IDENTITY.md/SOUL.md define
 agent personality and quality standards.
 
+### Hybrid Search (kb-mcp Phase 2)
+
+BM25 + vector search via memvid-core `vec` feature. Local ONNX embeddings
+(BGE-small-en-v1.5), HNSW vector index in `.mv2` files, RRF fusion.
+Opt-in via `cargo build --features hybrid`. Container supports
+`just agent-build-hybrid`.
+
 ## Up Next
 
 ### Draft Reviewer Agent
@@ -39,19 +46,6 @@ the bottleneck. Automating the quality gate completes the capture pipeline.
 - Ensure frontmatter has required fields (tags, created, updated, sources, target)
 - Promote approved drafts to the correct vault section
 - Flag issues for human attention rather than silently fixing
-
-### Hybrid Search (kb-mcp Phase 2)
-
-Enable memvid-core's `vec` feature for vector similarity alongside BM25.
-
-**Why now:** The researcher agent asks conceptual questions ("how do agents
-share state?") that BM25 can't match against documents titled "shared memory."
-
-**Scope:**
-- Local ONNX embeddings (BGE-small-en-v1.5)
-- HNSW vector index stored in the `.mv2` file
-- Hybrid ranking: BM25 + vector similarity via RRF fusion
-- New `--hybrid` flag on search (or automatic when both indexes exist)
 
 ### Heartbeat Scheduling
 

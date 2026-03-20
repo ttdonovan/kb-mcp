@@ -2,7 +2,11 @@
 # Builds ZeroClaw, kb-mcp, and Earl from source into a minimal runtime image.
 #
 # Build: just agent-build
+# Build with hybrid search: just agent-build-hybrid
 # Run:   just agent-research
+
+# Build arg: set to "hybrid" for BM25 + vector search
+ARG KB_MCP_FEATURES=""
 
 # ---------------------------------------------------------------------------
 # Stage 1: Build ZeroClaw from source
@@ -24,13 +28,19 @@ RUN git clone --depth 1 https://github.com/zeroclaw-labs/zeroclaw.git /tmp/zc \
 # ---------------------------------------------------------------------------
 FROM rust:slim-bookworm AS build-kbmcp
 
+ARG KB_MCP_FEATURES
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git pkg-config libssl-dev ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 RUN git clone --depth 1 https://github.com/ttdonovan/kb-mcp.git /tmp/kb \
     && cd /tmp/kb \
-    && cargo build --release \
+    && if [ -n "$KB_MCP_FEATURES" ]; then \
+         cargo build --release --features "$KB_MCP_FEATURES"; \
+       else \
+         cargo build --release; \
+       fi \
     && cp target/release/kb-mcp /usr/local/bin/kb-mcp \
     && rm -rf /tmp/kb
 
@@ -62,6 +72,8 @@ RUN git clone --depth 1 https://github.com/brwse/earl.git /tmp/earl \
 # ---------------------------------------------------------------------------
 FROM debian:trixie-slim
 
+ARG KB_MCP_FEATURES
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates curl jq \
     && rm -rf /var/lib/apt/lists/*
@@ -70,6 +82,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=build-zeroclaw /usr/local/bin/zeroclaw /usr/local/bin/zeroclaw
 COPY --from=build-kbmcp /usr/local/bin/kb-mcp /usr/local/bin/kb-mcp
 COPY --from=build-earl /usr/local/bin/earl /usr/local/bin/earl
+
+# Download ONNX embedding model if hybrid search enabled (~34MB)
+RUN if echo "$KB_MCP_FEATURES" | grep -q "hybrid"; then \
+      mkdir -p /opt/memvid/text-models && \
+      curl -L -o /opt/memvid/text-models/bge-small-en-v1.5.onnx \
+        https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/onnx/model.onnx && \
+      curl -L -o /opt/memvid/text-models/bge-small-en-v1.5_tokenizer.json \
+        https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/tokenizer.json; \
+    fi
 
 # Shared entrypoint — copies config into ZeroClaw's tmpfs config dir
 COPY scripts/entrypoint.sh /usr/local/bin/entrypoint.sh

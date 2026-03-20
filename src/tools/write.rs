@@ -135,6 +135,8 @@ impl KbMcpServer {
             collection,
             &current_hashes,
             &new_index.documents,
+            #[cfg(feature = "hybrid")]
+            &self.embedder,
         ) {
             self.search_engine.replace_store(&params.collection, mem);
         }

@@ -22,6 +22,8 @@ pub struct KbMcpServer {
     pub(crate) search_engine: Arc<SearchEngine>,
     pub(crate) collections: Arc<Vec<ResolvedCollection>>,
     pub(crate) cache_dir: std::path::PathBuf,
+    #[cfg(feature = "hybrid")]
+    pub(crate) embedder: Arc<memvid_core::LocalTextEmbedder>,
     tool_router: rmcp::handler::server::router::tool::ToolRouter<Self>,
 }
 
@@ -31,12 +33,15 @@ impl KbMcpServer {
         search_engine: SearchEngine,
         collections: Vec<ResolvedCollection>,
         cache_dir: std::path::PathBuf,
+        #[cfg(feature = "hybrid")] embedder: Arc<memvid_core::LocalTextEmbedder>,
     ) -> Self {
         Self {
             index: Arc::new(RwLock::new(index)),
             search_engine: Arc::new(search_engine),
             collections: Arc::new(collections),
             cache_dir,
+            #[cfg(feature = "hybrid")]
+            embedder,
             tool_router: tools::combined_router(),
         }
     }

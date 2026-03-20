@@ -36,6 +36,8 @@ impl KbMcpServer {
                 collection,
                 &current_hashes,
                 &new_index.documents,
+                #[cfg(feature = "hybrid")]
+                &self.embedder,
             ) {
                 Ok((mem, changes)) => {
                     total_changes += changes;

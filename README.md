@@ -30,8 +30,35 @@ point at your directories. See [Configuration](#configuration) below.
 ## Install
 
 ```sh
+# BM25 keyword search (default, lightweight)
 cargo install --path .
+
+# BM25 + vector hybrid search (requires ONNX model, see below)
+cargo install --path . --features hybrid
 ```
+
+### Hybrid Search (optional)
+
+Enable the `hybrid` feature for semantic vector search alongside BM25.
+Conceptual queries like "how do agents share state?" will match documents
+titled "shared memory" that keyword search alone would miss.
+
+Requires the BGE-small-en-v1.5 ONNX model (~133MB):
+
+```sh
+# macOS: ~/Library/Caches/memvid/text-models/
+# Linux: ~/.cache/memvid/text-models/
+CACHE_DIR="${HOME}/Library/Caches/memvid/text-models"  # adjust for Linux
+mkdir -p "$CACHE_DIR"
+curl -L -o "$CACHE_DIR/bge-small-en-v1.5.onnx" \
+  https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/onnx/model.onnx
+curl -L -o "$CACHE_DIR/bge-small-en-v1.5_tokenizer.json" \
+  https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/tokenizer.json
+```
+
+When hybrid is enabled, search automatically uses RRF fusion of BM25 +
+vector results. No query changes needed — agents get better results
+transparently.
 
 ## Configuration
 
@@ -106,7 +133,7 @@ For cross-project use, set `KB_MCP_CONFIG` to point to the config:
 | Tool | Description |
 |------|-------------|
 | `list_sections` | List collections with section doc counts and descriptions |
-| `search` | BM25 full-text search with collection/section filtering |
+| `search` | Full-text search (BM25, or hybrid BM25+vector with `--features hybrid`) |
 | `get_document` | Retrieve full document content by path or title |
 | `kb_context` | Token-efficient briefing (frontmatter + summary only) |
 | `kb_write` | Create a note in a writable collection |

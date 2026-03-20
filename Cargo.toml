@@ -6,6 +6,10 @@ description = "MCP server + CLI for markdown knowledge bases"
 license = "MIT"
 repository = "https://github.com/ttdonovan/kb-mcp"
 
+[features]
+default = []
+hybrid = ["memvid-core/vec"]
+
 [dependencies]
 # MCP server
 rmcp = { version = "1.1", features = ["server", "transport-io", "schemars"] }

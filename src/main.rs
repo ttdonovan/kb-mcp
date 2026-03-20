@@ -31,6 +31,7 @@ fn sync_stores(
     cache_dir: &std::path::Path,
     index: &Index,
     collections: &[config::ResolvedCollection],
+    #[cfg(feature = "hybrid")] embedder: &memvid_core::LocalTextEmbedder,
 ) -> HashMap<String, memvid_core::Memvid> {
     let mut stores = HashMap::new();
 
@@ -47,8 +48,14 @@ fn sync_stores(
             .filter(|d| d.collection == collection.name)
             .collect();
 
-        // Collect owned documents for sync_collection (it needs &[Document])
-        match store::sync_collection(cache_dir, collection, &current_hashes, &index.documents) {
+        match store::sync_collection(
+            cache_dir,
+            collection,
+            &current_hashes,
+            &index.documents,
+            #[cfg(feature = "hybrid")]
+            embedder,
+        ) {
             Ok((mem, changes)) => {
                 if changes > 0 {
                     tracing::info!(
@@ -61,7 +68,7 @@ fn sync_stores(
                 stores.insert(collection.name.clone(), mem);
             }
             Err(e) => {
-                tracing::error!("failed to sync collection '{}': {}", collection.name, e);
+                eprintln!("failed to sync collection '{}': {:?}", collection.name, e);
             }
         }
     }
@@ -79,8 +86,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let collections = config.collections.clone();
         let cache_dir = config.cache_dir.clone();
         let index = Index::build(&config.collections);
-        let stores = sync_stores(&cache_dir, &index, &collections);
-        let search_engine = SearchEngine::new(stores);
+
+        #[cfg(feature = "hybrid")]
+        let embedder = std::sync::Arc::new(
+            memvid_core::LocalTextEmbedder::new(memvid_core::TextEmbedConfig::default())?,
+        );
+
+        let stores = sync_stores(
+            &cache_dir,
+            &index,
+            &collections,
+            #[cfg(feature = "hybrid")]
+            &embedder,
+        );
+        let search_engine = SearchEngine::new(
+            stores,
+            #[cfg(feature = "hybrid")]
+            embedder.clone(),
+        );
 
         cli::run(parsed, &index, &search_engine, &collections);
         return Ok(());
@@ -100,8 +123,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let collections = config.collections.clone();
     let cache_dir = config.cache_dir.clone();
     let index = Index::build(&config.collections);
-    let stores = sync_stores(&cache_dir, &index, &collections);
-    let search_engine = SearchEngine::new(stores);
+
+    #[cfg(feature = "hybrid")]
+    let embedder = std::sync::Arc::new(
+        memvid_core::LocalTextEmbedder::new(memvid_core::TextEmbedConfig::default())?,
+    );
+
+    let stores = sync_stores(
+        &cache_dir,
+        &index,
+        &collections,
+        #[cfg(feature = "hybrid")]
+        &embedder,
+    );
+    let search_engine = SearchEngine::new(
+        stores,
+        #[cfg(feature = "hybrid")]
+        embedder.clone(),
+    );
 
     tracing::info!(
         "kb-mcp ready: {} documents across {} sections",
@@ -109,7 +148,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         index.sections.len()
     );
 
-    let server = KbMcpServer::new(index, search_engine, collections, cache_dir);
+    let server = KbMcpServer::new(
+        index,
+        search_engine,
+        collections,
+        cache_dir,
+        #[cfg(feature = "hybrid")]
+        embedder,
+    );
     let service = server.serve(stdio()).await?;
     service.waiting().await?;
 
