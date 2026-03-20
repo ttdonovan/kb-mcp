@@ -20,6 +20,15 @@
 - [Tools](reference/tools.md)
 - [RON Schema](reference/ron-schema.md)
 
+# Landscape
+
+- [Overview](landscape/overview.md)
+- [hipocampus](landscape/hipocampus.md)
+- [obsidian-web-mcp](landscape/obsidian-web-mcp.md)
+- [mengram](landscape/mengram.md)
+- [hmem](landscape/hmem.md)
+- [mnemex](landscape/mnemex.md)
+
 # Development
 
 - [Architecture](development/architecture.md)
