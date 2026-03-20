@@ -112,19 +112,11 @@ After making changes, verify with:
 
 ## Development Tooling
 
-This project was built using [Claude Code](https://claude.com/claude-code)
-with the [Compound Engineering](https://every.to/guides/compound-engineering)
-plugin — an AI-native dev methodology where each work cycle makes future
-cycles easier. The Plan → Work → Review → Compound loop drove the
-brainstorm, plan, and implementation phases.
+See [docs/DEV.md](docs/DEV.md) for the full development methodology,
+including the Compound Engineering workflow (`/ce:brainstorm` → `/ce:plan`
+→ `/ce:work` → `/ce:review` → `/ce:compound`) and session patterns.
 
-Key tools used:
-- `/ce:brainstorm` — explored requirements and design decisions
-- `/ce:plan` — transformed the brainstorm into an implementation plan
-- `/ce:work` — executed the plan with task tracking
-- Parallel research agents — repo analysis, external crate docs, spec flow analysis
-
-The brainstorm and plan are preserved in `docs/brainstorms/` and `docs/plans/`.
+Brainstorms and plans are preserved in `docs/brainstorms/` and `docs/plans/`.
 
 ## Adding a New Tool
 

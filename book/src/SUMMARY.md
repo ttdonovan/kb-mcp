@@ -23,5 +23,6 @@
 # Development
 
 - [Architecture](development/architecture.md)
+- [Tooling & Methodology](development/methodology.md)
 - [Adding Tools](development/adding-tools.md)
 - [ZeroClaw Researcher Agent](development/agents/researcher.md)
