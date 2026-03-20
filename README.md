@@ -155,6 +155,8 @@ kb-mcp reindex
 
 ## Documentation
 
+**[Read the docs](https://ttdonovan.github.io/kb-mcp/)**
+
 Project documentation is built with [mdBook](https://rust-lang.github.io/mdBook/)
 and uses [Mermaid](https://mermaid.js.org/) for architecture diagrams.
 
