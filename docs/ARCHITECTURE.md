@@ -62,10 +62,13 @@ src/
     ├── mod.rs       Router composition (sections + documents + search + ...)
     ├── sections.rs  list_sections — collection/section inventory
     ├── documents.rs get_document — full content retrieval (fresh from disk)
-    ├── search.rs    search — BM25 full-text with collection/section filtering
+    ├── search.rs    search — BM25 full-text with auto-reindex on stale collections
     ├── context.rs   kb_context — frontmatter + summary (token-efficient)
     ├── write.rs     kb_write — create files in writable collections
-    └── reindex.rs   reindex — rebuild index from disk
+    ├── reindex.rs   reindex — rebuild index from disk
+    ├── digest.rs    kb_digest — vault summary with topics, recency, gap hints
+    ├── query.rs     kb_query — frontmatter filtering (tag, status, date, sources)
+    └── export.rs    kb_export — concatenate vault into single markdown document
 ```
 
 ## Data Model

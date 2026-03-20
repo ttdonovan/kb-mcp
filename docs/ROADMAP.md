@@ -6,7 +6,7 @@ What's been built, what's next, and when each phase makes sense.
 
 ### Standalone MCP Server (v2)
 
-RON-configured binary with 6 MCP tools, full CLI parity, and zero
+RON-configured binary with 9 MCP tools, full CLI parity, and zero
 hardcoded project-specific values. Open sourced at
 [github.com/ttdonovan/kb-mcp](https://github.com/ttdonovan/kb-mcp).
 
@@ -28,6 +28,13 @@ BM25 + vector search via memvid-core `vec` feature. Local ONNX embeddings
 (BGE-small-en-v1.5), HNSW vector index in `.mv2` files, RRF fusion.
 Opt-in via `cargo build --features hybrid`. Container supports
 `just agent-build-hybrid`.
+
+### Vault Intelligence Bundle
+
+Three new MCP tools (`kb_digest`, `kb_query`, `kb_export`) plus transparent
+auto-reindex via directory mtime checks. Brings the tool count from 6 to 9.
+`kb_write` also gained optional `directory` and `filename` parameters for
+hierarchical collection structures.
 
 ## Up Next
 

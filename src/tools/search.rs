@@ -33,12 +33,15 @@ pub(crate) fn router() -> rmcp::handler::server::router::tool::ToolRouter<KbMcpS
 impl KbMcpServer {
     #[rmcp::tool(
         name = "search",
-        description = "Full-text search across the knowledge base. Uses BM25 ranking with stemming. Supports phrases (\"exact match\") and boolean operators (AND, OR). Returns ranked results with excerpts. Filter by collection name or section scope."
+        description = "Full-text search across the knowledge base. Uses BM25 ranking with stemming. Supports phrases (\"exact match\") and boolean operators (AND, OR). Returns ranked results with excerpts. Filter by collection name or section scope. Automatically detects and re-syncs stale collections."
     )]
     pub(crate) async fn search(
         &self,
         Parameters(params): Parameters<SearchParams>,
     ) -> Result<CallToolResult, rmcp::ErrorData> {
+        // Auto-reindex: check if any collection has changed since last sync
+        self.auto_reindex_stale_collections().await;
+
         let index = self.index.read().await;
         let results = self.search_engine.search(
             &index.documents,

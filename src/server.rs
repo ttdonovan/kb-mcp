@@ -46,22 +46,95 @@ impl KbMcpServer {
         }
     }
 
+    /// Check each collection for staleness and re-sync any that have changed.
+    ///
+    /// Compares the collection directory's mtime against the `.hashes` sidecar
+    /// file's mtime. If the directory is newer, files were added or removed
+    /// since the last sync. This is one `stat()` per collection — microseconds
+    /// for typical vaults. Deep content edits still need explicit `reindex`.
+    pub(crate) async fn auto_reindex_stale_collections(&self) {
+        let mut stale_collections = Vec::new();
+
+        for collection in self.collections.iter() {
+            let hashes_file = crate::store::hashes_path(&self.cache_dir, collection);
+
+            let dir_mtime = collection
+                .path
+                .metadata()
+                .and_then(|m| m.modified())
+                .ok();
+            let hashes_mtime = hashes_file.metadata().and_then(|m| m.modified()).ok();
+
+            let is_stale = match (dir_mtime, hashes_mtime) {
+                (Some(dir_t), Some(hash_t)) => dir_t > hash_t,
+                (Some(_), None) => true, // no sidecar yet
+                _ => false,
+            };
+
+            if is_stale {
+                stale_collections.push(collection.name.clone());
+            }
+        }
+
+        if stale_collections.is_empty() {
+            return;
+        }
+
+        tracing::info!("auto-reindex: stale collections: {:?}", stale_collections);
+
+        // Rebuild the full index to pick up new/removed documents
+        let new_index = crate::index::Index::build(&self.collections);
+
+        for collection in self.collections.iter() {
+            if !stale_collections.contains(&collection.name) {
+                continue;
+            }
+
+            let current_hashes = new_index
+                .content_hashes
+                .get(&collection.name)
+                .cloned()
+                .unwrap_or_default();
+
+            match crate::store::sync_collection(
+                &self.cache_dir,
+                collection,
+                &current_hashes,
+                &new_index.documents,
+                #[cfg(feature = "hybrid")]
+                &self.embedder,
+            ) {
+                Ok((mem, changes)) => {
+                    tracing::info!(
+                        "auto-reindex: synced '{}' ({} changes)",
+                        collection.name,
+                        changes
+                    );
+                    self.search_engine
+                        .replace_store(&collection.name, mem);
+                }
+                Err(e) => {
+                    tracing::warn!(
+                        "auto-reindex: failed to sync '{}': {}",
+                        collection.name,
+                        e
+                    );
+                }
+            }
+        }
+
+        // Update the in-memory index
+        let mut index = self.index.write().await;
+        *index = new_index;
+    }
+
     /// Read a document fresh from disk rather than returning indexed content.
     /// This ensures `get_document` never serves stale content — edits are
     /// visible immediately without calling `reindex` first.
     pub(crate) fn read_fresh(&self, doc: &crate::types::Document) -> Option<String> {
         let coll = self.collections.iter().find(|c| c.name == doc.collection)?;
         let file_path = coll.path.join(&doc.path);
-        let content = std::fs::read_to_string(&file_path).ok()?;
-
-        // Strip frontmatter
-        if let Some(after) = content.strip_prefix("---")
-            && let Some(end) = after.find("\n---")
-        {
-            let body = &after[end + 4..];
-            return Some(body.trim_start_matches('\n').to_string());
-        }
-        Some(content)
+        crate::format::read_document_body(&file_path)
     }
 }
 
@@ -74,7 +147,9 @@ impl ServerHandler for KbMcpServer {
                 "Knowledge base MCP server. Use list_sections to discover content areas, \
                  search to find documents, get_document to retrieve full content, \
                  kb_context for token-efficient briefings, kb_write to create notes, \
-                 and reindex to refresh after adding new files."
+                 reindex to refresh after adding new files, kb_digest for vault summary \
+                 and coverage overview, kb_query to filter by tags/status/dates, \
+                 and kb_export to export vault as a single markdown document."
                     .to_string(),
             )
     }

@@ -74,9 +74,45 @@ pub enum Command {
         /// Optional source field
         #[arg(long)]
         source: Option<String>,
+        /// Subdirectory within the collection (e.g. "concepts/memory")
+        #[arg(long)]
+        directory: Option<String>,
+        /// Explicit filename (e.g. "cognitive-memory-model.md"). Skips date prefix.
+        #[arg(long)]
+        filename: Option<String>,
     },
     /// Rebuild the search index from disk
     Reindex,
+    /// Vault summary — coverage, gaps, recent additions
+    Digest {
+        /// Filter to a specific collection
+        #[arg(long)]
+        collection: Option<String>,
+    },
+    /// Filter documents by frontmatter fields
+    Query {
+        /// Filter by tag
+        #[arg(long)]
+        tag: Option<String>,
+        /// Filter by frontmatter status
+        #[arg(long)]
+        status: Option<String>,
+        /// Filter by created date (YYYY-MM-DD, docs on or after)
+        #[arg(long)]
+        created_after: Option<String>,
+        /// Filter by collection name
+        #[arg(long)]
+        collection: Option<String>,
+        /// Only docs with a sources field
+        #[arg(long)]
+        has_sources: bool,
+    },
+    /// Export vault as a single markdown document
+    Export {
+        /// Collection to export (default: all)
+        #[arg(long)]
+        collection: Option<String>,
+    },
 }
 
 pub fn run(
@@ -140,6 +176,8 @@ pub fn run(
             body,
             status,
             source,
+            directory,
+            filename,
         } => {
             let collection = collections.iter().find(|c| c.name == coll_name);
             let collection = match collection {
@@ -159,10 +197,43 @@ pub fn run(
                 .map(|t| t.split(',').map(|s| s.trim().to_string()).collect())
                 .unwrap_or_default();
 
+            // Resolve target directory
+            let target_dir = if let Some(ref dir) = directory {
+                let resolved = collection.path.join(dir);
+                let canonical_base = collection
+                    .path
+                    .canonicalize()
+                    .unwrap_or(collection.path.clone());
+                if let Err(e) = std::fs::create_dir_all(&resolved) {
+                    eprintln!("Failed to create directory '{}': {}", dir, e);
+                    std::process::exit(1);
+                }
+                let canonical_resolved = resolved.canonicalize().unwrap_or(resolved);
+                if !canonical_resolved.starts_with(&canonical_base) {
+                    eprintln!(
+                        "Directory '{}' escapes the collection root",
+                        dir
+                    );
+                    std::process::exit(1);
+                }
+                canonical_resolved
+            } else {
+                collection.path.clone()
+            };
+
+            // Generate filename: explicit or date-prefixed slug
             let today = chrono::Local::now().format("%Y-%m-%d").to_string();
-            let slug = crate::tools::write::slugify_title(&title);
-            let base_name = format!("{}-{}.md", today, slug);
-            let file_path = find_available_path(&collection.path, &base_name);
+            let base_name = if let Some(ref name) = filename {
+                if name.ends_with(".md") {
+                    name.clone()
+                } else {
+                    format!("{}.md", name)
+                }
+            } else {
+                let slug = crate::tools::write::slugify_title(&title);
+                format!("{}-{}.md", today, slug)
+            };
+            let file_path = find_available_path(&target_dir, &base_name);
 
             let mut frontmatter = String::new();
             frontmatter.push_str("---\n");
@@ -211,6 +282,79 @@ pub fn run(
                 "Reindexed {} documents across {} sections",
                 new_index.documents.len(),
                 new_index.sections.len()
+            );
+        }
+        Command::Digest { collection } => {
+            println!(
+                "{}",
+                format::format_digest(
+                    &index.documents,
+                    &index.sections,
+                    collection.as_deref()
+                )
+            );
+        }
+        Command::Query {
+            tag,
+            status,
+            created_after,
+            collection,
+            has_sources,
+        } => {
+            if let Some(ref date_str) = created_after
+                && chrono::NaiveDate::parse_from_str(date_str, "%Y-%m-%d").is_err()
+            {
+                eprintln!(
+                    "Invalid created_after date '{}', expected YYYY-MM-DD format",
+                    date_str
+                );
+                std::process::exit(1);
+            }
+            let params = crate::tools::query::QueryParams {
+                tag,
+                status,
+                created_after,
+                collection,
+                has_sources,
+            };
+            let results: Vec<&crate::types::Document> = index
+                .documents
+                .iter()
+                .filter(|doc| crate::tools::query::matches_query(doc, &params))
+                .collect();
+            println!("{}", format::format_query(&results));
+        }
+        Command::Export { collection } => {
+            let docs_with_bodies: Vec<(&crate::types::Document, String)> = index
+                .documents
+                .iter()
+                .filter(|doc| {
+                    collection
+                        .as_ref()
+                        .is_none_or(|f| doc.collection == *f)
+                })
+                .filter_map(|doc| {
+                    let coll = collections.iter().find(|c| c.name == doc.collection)?;
+                    let file_path = coll.path.join(&doc.path);
+                    let body = format::read_document_body(&file_path)?;
+                    Some((doc, body))
+                })
+                .collect();
+
+            if docs_with_bodies.is_empty() {
+                eprintln!(
+                    "No documents found{}",
+                    collection
+                        .as_ref()
+                        .map(|c| format!(" in collection '{}'", c))
+                        .unwrap_or_default()
+                );
+                std::process::exit(1);
+            }
+
+            print!(
+                "{}",
+                format::format_export(&docs_with_bodies, collection.as_deref())
             );
         }
     }

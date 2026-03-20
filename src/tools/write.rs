@@ -23,6 +23,16 @@ pub struct WriteParams {
     /// Optional source field for frontmatter
     #[serde(default)]
     pub source: Option<String>,
+    /// Optional subdirectory within the collection (e.g. "concepts/memory" or
+    /// "research/papers"). Created automatically if it doesn't exist. Files
+    /// written here appear under the corresponding section in list_sections.
+    #[serde(default)]
+    pub directory: Option<String>,
+    /// Optional filename (e.g. "cognitive-memory-model.md"). When omitted, a
+    /// date-prefixed slug is generated from the title. Use this for structured
+    /// hierarchies where date prefixes don't fit.
+    #[serde(default)]
+    pub filename: Option<String>,
 }
 
 pub(crate) fn router() -> rmcp::handler::server::router::tool::ToolRouter<KbMcpServer> {
@@ -33,7 +43,7 @@ pub(crate) fn router() -> rmcp::handler::server::router::tool::ToolRouter<KbMcpS
 impl KbMcpServer {
     #[rmcp::tool(
         name = "kb_write",
-        description = "Create a new document in a writable collection. Generates proper frontmatter with date-prefixed filename. Only works on collections marked writable in the configuration."
+        description = "Create a new document in a writable collection. Generates frontmatter with date-prefixed filename by default. Use 'directory' to write into subdirectories (created automatically) and 'filename' to specify an exact filename without date prefix. Only works on collections marked writable in the configuration."
     )]
     pub(crate) async fn kb_write(
         &self,
@@ -80,13 +90,47 @@ impl KbMcpServer {
             )]));
         }
 
-        // Generate filename
+        // Resolve target directory, validating it doesn't escape the collection
+        let target_dir = if let Some(ref dir) = params.directory {
+            let resolved = collection.path.join(dir);
+            // Prevent path traversal (e.g. "../../etc")
+            let canonical_base = collection.path.canonicalize().unwrap_or(collection.path.clone());
+            // Create the directory so canonicalize works on it
+            if let Err(e) = std::fs::create_dir_all(&resolved) {
+                return Ok(CallToolResult::error(vec![rmcp::model::Content::text(
+                    format!("Failed to create directory '{}': {}", dir, e),
+                )]));
+            }
+            let canonical_resolved = resolved.canonicalize().unwrap_or(resolved);
+            if !canonical_resolved.starts_with(&canonical_base) {
+                return Ok(CallToolResult::error(vec![rmcp::model::Content::text(
+                    format!(
+                        "Directory '{}' escapes the collection root. Use a relative path within the collection.",
+                        dir
+                    ),
+                )]));
+            }
+            canonical_resolved
+        } else {
+            collection.path.clone()
+        };
+
+        // Generate filename: use explicit filename or date-prefixed slug
         let today = chrono::Local::now().format("%Y-%m-%d").to_string();
-        let slug = slugify_title(&params.title);
-        let base_name = format!("{}-{}.md", today, slug);
+        let base_name = if let Some(ref name) = params.filename {
+            // Ensure it ends with .md
+            if name.ends_with(".md") {
+                name.clone()
+            } else {
+                format!("{}.md", name)
+            }
+        } else {
+            let slug = slugify_title(&params.title);
+            format!("{}-{}.md", today, slug)
+        };
 
         // Handle collisions
-        let file_path = find_available_path(&collection.path, &base_name);
+        let file_path = find_available_path(&target_dir, &base_name);
         let rel_path = file_path
             .strip_prefix(&collection.path)
             .unwrap_or(&file_path)

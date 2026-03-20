@@ -5,7 +5,10 @@
 //! plus one line in this module.
 
 pub(crate) mod context;
+pub(crate) mod digest;
 pub(crate) mod documents;
+pub(crate) mod export;
+pub(crate) mod query;
 pub(crate) mod reindex;
 pub(crate) mod search;
 pub(crate) mod sections;
@@ -21,4 +24,7 @@ pub(crate) fn combined_router() -> ToolRouter<KbMcpServer> {
         + context::router()
         + write::router()
         + reindex::router()
+        + digest::router()
+        + query::router()
+        + export::router()
 }

@@ -55,8 +55,9 @@ Saves 90%+ tokens on retrieval-heavy workflows.
 
 ## kb_write
 
-Create a new document in a writable collection. Generates proper frontmatter
-with a date-prefixed filename.
+Create a new document in a writable collection. Generates frontmatter with a
+date-prefixed filename by default. Use `directory` to write into subdirectories
+and `filename` to specify an exact name without date prefix.
 
 **Parameters:**
 
@@ -68,15 +69,66 @@ with a date-prefixed filename.
 | `tags` | List | No | Tags for frontmatter |
 | `status` | String | No | Status field for frontmatter |
 | `source` | String | No | Source field for frontmatter |
+| `directory` | String | No | Subdirectory within collection (e.g. "concepts/memory"). Created automatically. |
+| `filename` | String | No | Exact filename (e.g. "cognitive-memory-model.md"). Skips date prefix when provided. |
 
 **Returns:** JSON with `path`, `collection`, `title`, and `tags`.
 
-**Errors:** Returns actionable error if collection is read-only or not found.
+**Errors:** Returns actionable error if collection is read-only, not found, or
+directory escapes the collection root.
+
+## kb_digest
+
+Vault summary — shows collections, sections with topics, recent additions
+(last 7 days), and thin sections (fewer than 2 documents). Use this to
+understand what the knowledge base covers before searching.
+
+**Parameters:**
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `collection` | String | No | Filter to a specific collection |
+
+**Returns:** JSON with `total_documents`, `total_sections`, and `collections`
+array. Each collection has `name`, `doc_count`, `sections` (with topics and
+gap hints), and `recent` additions.
+
+## kb_query
+
+Filter documents by frontmatter fields. Multiple filters combine with AND logic.
+Returns document metadata without body content.
+
+**Parameters:**
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `tag` | String | No | Filter by tag |
+| `status` | String | No | Filter by frontmatter status field |
+| `created_after` | String | No | YYYY-MM-DD, returns docs created on or after |
+| `collection` | String | No | Filter by collection name |
+| `has_sources` | Boolean | No | Only docs with a sources field |
+
+**Returns:** JSON with `total` and `documents` array. Each document has
+`path`, `title`, `tags`, `section`, and `collection`.
+
+## kb_export
+
+Export vault as a single markdown document. Concatenates all documents with
+frontmatter headers. Use to create a portable snapshot of knowledge base content.
+
+**Parameters:**
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `collection` | String | No | Collection to export (default: all) |
+
+**Returns:** Concatenated markdown with document separators and frontmatter metadata.
 
 ## reindex
 
-Rebuild the search index from all collections on disk. Use after adding
-or editing documents mid-session.
+Rebuild the search index from all collections on disk. Use after editing
+documents mid-session. Note: search now auto-detects new files via directory
+mtime checks, so `reindex` is mainly needed after in-place content edits.
 
 **Parameters:** None
 

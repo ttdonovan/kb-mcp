@@ -1,7 +1,7 @@
 ---
 title: "feat: Vault Intelligence Bundle — digest, query, auto-reindex, export"
 type: feat
-status: active
+status: completed
 date: 2026-03-20
 origin: docs/brainstorms/2026-03-20-vault-intelligence-bundle-brainstorm.md
 ---
@@ -160,38 +160,38 @@ frontmatter headers.
 ## Acceptance Criteria
 
 ### kb_digest
-- [ ] New MCP tool `kb_digest` returns vault summary JSON
-- [ ] CLI subcommand `digest` produces same output
-- [ ] Topics extracted from document titles per section
-- [ ] Recent additions (last 7 days) included per collection
-- [ ] Sections with <2 docs flagged as thin
-- [ ] Output fits in ~200-500 tokens
+- [x] New MCP tool `kb_digest` returns vault summary JSON
+- [x] CLI subcommand `digest` produces same output
+- [x] Topics extracted from document titles per section
+- [x] Recent additions (last 7 days) included per collection
+- [x] Sections with <2 docs flagged as thin
+- [x] Output fits in ~200-500 tokens
 
 ### kb_query
-- [ ] New MCP tool `kb_query` filters by tag, status, created_after, collection, has_sources
-- [ ] CLI subcommand `query` with matching flags
-- [ ] Returns document metadata (path, title, tags, section, collection) without body
-- [ ] Multiple filters combine with AND logic
-- [ ] Empty result set returns empty array (not error)
+- [x] New MCP tool `kb_query` filters by tag, status, created_after, collection, has_sources
+- [x] CLI subcommand `query` with matching flags
+- [x] Returns document metadata (path, title, tags, section, collection) without body
+- [x] Multiple filters combine with AND logic
+- [x] Empty result set returns empty array (not error)
 
 ### Auto-reindex
-- [ ] Search detects stale collections via file mtime comparison
-- [ ] Stale collections re-synced automatically before results returned
-- [ ] Fresh collections skip re-sync (no performance penalty)
-- [ ] Works transparently — no new tool or parameter needed
+- [x] Search detects stale collections via file mtime comparison
+- [x] Stale collections re-synced automatically before results returned
+- [x] Fresh collections skip re-sync (no performance penalty)
+- [x] Works transparently — no new tool or parameter needed
 
 ### kb_export
-- [ ] New MCP tool `kb_export` returns concatenated markdown
-- [ ] CLI subcommand `export` writes to stdout
-- [ ] Optional `--collection` filter
-- [ ] Documents read fresh from disk (not from index)
-- [ ] Frontmatter included as YAML block per document
+- [x] New MCP tool `kb_export` returns concatenated markdown
+- [x] CLI subcommand `export` writes to stdout
+- [x] Optional `--collection` filter
+- [x] Documents read fresh from disk (not from index)
+- [x] Frontmatter included as YAML block per document
 
 ### Quality Gates
-- [ ] All 8 existing tools still work (no regression)
-- [ ] `cargo clippy` clean (both default and hybrid builds)
-- [ ] New tools have CLI parity (CLAUDE.md hard rule)
-- [ ] Book updated with new tools in reference/tools.md
+- [x] All 8 existing tools still work (no regression)
+- [x] `cargo clippy` clean (both default and hybrid builds)
+- [x] New tools have CLI parity (CLAUDE.md hard rule)
+- [x] Book updated with new tools in reference/tools.md
 
 ## Implementation Phases
 

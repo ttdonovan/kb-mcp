@@ -11,6 +11,39 @@ use serde::Serialize;
 use crate::search::SearchResult;
 use crate::types::{Document, Section};
 
+// --- Digest output types ---
+
+#[derive(Serialize)]
+pub struct DigestOutput {
+    pub total_documents: usize,
+    pub total_sections: usize,
+    pub collections: Vec<DigestCollectionOutput>,
+}
+
+#[derive(Serialize)]
+pub struct DigestCollectionOutput {
+    pub name: String,
+    pub doc_count: usize,
+    pub sections: Vec<DigestSectionOutput>,
+    pub recent: Vec<DigestRecentOutput>,
+}
+
+#[derive(Serialize)]
+pub struct DigestSectionOutput {
+    pub name: String,
+    pub doc_count: usize,
+    pub topics: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hint: Option<String>,
+}
+
+#[derive(Serialize)]
+pub struct DigestRecentOutput {
+    pub path: String,
+    pub title: String,
+    pub created: String,
+}
+
 #[derive(Serialize)]
 pub struct SectionOutput {
     pub name: String,
@@ -191,4 +224,212 @@ fn collect_paragraph(lines: &mut std::iter::Peekable<std::str::Lines>) -> String
         paragraph.push(line);
     }
     paragraph.join("\n")
+}
+
+/// Convert a serde_yaml::Value to a display string. serde_yaml::Value doesn't
+/// implement Display, so we serialize via serde_json for non-string variants.
+pub fn yaml_value_to_string(v: &serde_yaml::Value) -> String {
+    match v {
+        serde_yaml::Value::String(s) => s.clone(),
+        serde_yaml::Value::Bool(b) => b.to_string(),
+        serde_yaml::Value::Number(n) => {
+            if let Some(i) = n.as_i64() {
+                i.to_string()
+            } else if let Some(f) = n.as_f64() {
+                f.to_string()
+            } else {
+                String::new()
+            }
+        }
+        serde_yaml::Value::Null => "null".to_string(),
+        other => serde_json::to_string(other).unwrap_or_default(),
+    }
+}
+
+/// Build a vault digest — structured overview of collections, sections, topics,
+/// and recent additions. The 7-day recency window uses frontmatter `created` dates.
+pub fn format_digest(
+    documents: &[Document],
+    sections: &[Section],
+    collection_filter: Option<&str>,
+) -> String {
+    let today = chrono::Local::now().date_naive();
+    let week_ago = today - chrono::Duration::days(7);
+
+    // Group documents by collection
+    let mut coll_docs: HashMap<&str, Vec<&Document>> = HashMap::new();
+    for doc in documents {
+        if collection_filter.is_some_and(|f| doc.collection != f) {
+            continue;
+        }
+        coll_docs.entry(&doc.collection).or_default().push(doc);
+    }
+
+    // Group sections by collection
+    let mut coll_sections: HashMap<&str, Vec<&Section>> = HashMap::new();
+    for sec in sections {
+        if collection_filter.is_some_and(|f| sec.collection != f) {
+            continue;
+        }
+        coll_sections.entry(&sec.collection).or_default().push(sec);
+    }
+
+    let mut collection_names: Vec<&str> = coll_docs.keys().copied().collect();
+    collection_names.sort();
+
+    let mut total_documents = 0;
+    let mut total_sections = 0;
+    let mut collections = Vec::new();
+
+    for coll_name in collection_names {
+        let docs = &coll_docs[coll_name];
+        total_documents += docs.len();
+
+        // Build section digests with topics (from doc titles)
+        let empty_secs = vec![];
+        let secs = coll_sections.get(coll_name).unwrap_or(&empty_secs);
+        total_sections += secs.len();
+
+        let mut section_outputs = Vec::new();
+        for sec in secs {
+            let sec_docs: Vec<&&Document> = docs
+                .iter()
+                .filter(|d| d.section == sec.name)
+                .collect();
+            let topics: Vec<String> = sec_docs.iter().map(|d| d.title.clone()).collect();
+            let filtered_count = sec_docs.len();
+            let hint = if filtered_count < 2 {
+                Some("thin — fewer than 2 documents".to_string())
+            } else {
+                None
+            };
+            section_outputs.push(DigestSectionOutput {
+                name: sec.name.clone(),
+                doc_count: filtered_count,
+                topics,
+                hint,
+            });
+        }
+
+        // Recent: docs with `created` date in last 7 days
+        let mut recent = Vec::new();
+        for doc in docs {
+            if let Some(created_val) = doc.frontmatter.get("created") {
+                let created_str = yaml_value_to_string(created_val);
+                if let Ok(created_date) =
+                    chrono::NaiveDate::parse_from_str(&created_str, "%Y-%m-%d")
+                    && created_date >= week_ago
+                {
+                    recent.push(DigestRecentOutput {
+                        path: doc.path.clone(),
+                        title: doc.title.clone(),
+                        created: created_str,
+                    });
+                }
+            }
+        }
+        recent.sort_by(|a, b| b.created.cmp(&a.created));
+
+        collections.push(DigestCollectionOutput {
+            name: coll_name.to_string(),
+            doc_count: docs.len(),
+            sections: section_outputs,
+            recent,
+        });
+    }
+
+    let output = DigestOutput {
+        total_documents,
+        total_sections,
+        collections,
+    };
+
+    serde_json::to_string_pretty(&output).unwrap_or_default()
+}
+
+// --- Query output types ---
+
+#[derive(Serialize)]
+pub struct QueryOutput {
+    pub total: usize,
+    pub documents: Vec<QueryDocumentOutput>,
+}
+
+#[derive(Serialize)]
+pub struct QueryDocumentOutput {
+    pub path: String,
+    pub title: String,
+    pub tags: Vec<String>,
+    pub section: String,
+    pub collection: String,
+}
+
+/// Format query results — document metadata without body content.
+pub fn format_query(docs: &[&Document]) -> String {
+    let documents: Vec<QueryDocumentOutput> = docs
+        .iter()
+        .map(|d| QueryDocumentOutput {
+            path: d.path.clone(),
+            title: d.title.clone(),
+            tags: d.tags.clone(),
+            section: d.section.clone(),
+            collection: d.collection.clone(),
+        })
+        .collect();
+
+    let output = QueryOutput {
+        total: documents.len(),
+        documents,
+    };
+
+    serde_json::to_string_pretty(&output).unwrap_or_default()
+}
+
+/// Read a document's body from disk, stripping YAML frontmatter.
+///
+/// Shared implementation for both MCP and CLI fresh-from-disk reads.
+/// Callers resolve the full filesystem path; this handles frontmatter stripping.
+pub fn read_document_body(file_path: &std::path::Path) -> Option<String> {
+    let content = std::fs::read_to_string(file_path).ok()?;
+    if let Some(after) = content.strip_prefix("---")
+        && let Some(end) = after.find("\n---")
+    {
+        let body = &after[end + 4..];
+        return Some(body.trim_start_matches('\n').to_string());
+    }
+    Some(content)
+}
+
+/// Build an export document — concatenated markdown with frontmatter headers.
+///
+/// Takes a list of (document, body) pairs where bodies are pre-read from disk.
+/// Both the MCP tool and CLI command delegate to this function to avoid
+/// duplicating the markdown assembly logic.
+pub fn format_export(
+    docs_with_bodies: &[(&Document, String)],
+    collection_filter: Option<&str>,
+) -> String {
+    let today = chrono::Local::now().format("%Y-%m-%d");
+
+    let mut output = String::new();
+
+    let header = match collection_filter {
+        Some(c) => format!("# Vault Export: {} ({})\n\n", c, today),
+        None => format!("# Vault Export ({})\n\n", today),
+    };
+    output.push_str(&header);
+
+    for (doc, body) in docs_with_bodies {
+        output.push_str("---\n");
+        output.push_str(&format!("## {}\n", doc.path));
+        for (key, value) in &doc.frontmatter {
+            let val_str = yaml_value_to_string(value);
+            output.push_str(&format!("{}: {}\n", key, val_str));
+        }
+        output.push_str("---\n\n");
+        output.push_str(body);
+        output.push_str("\n\n");
+    }
+
+    output
 }
