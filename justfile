@@ -79,3 +79,31 @@ agent-research-topic topic:
 # Check what the agent can see in the vault
 agent-vault-status:
     @docker compose --profile dev run --rm researcher kb-mcp list-sections
+
+# =============================================================================
+# Metrics (requires: brew install tokei)
+# =============================================================================
+
+# Line counts by language
+loc:
+    @tokei src/ tests/
+
+# Largest files by code lines
+loc-top:
+    @tokei src/ tests/ --files --sort code
+
+# Full project stats (includes docs, config, vault)
+loc-all:
+    @tokei . --exclude target --exclude book/book
+
+# Compare against landscape projects (requires sandbox/ clones)
+loc-landscape:
+    @bash scripts/loc-landscape.sh
+
+# Landscape docs metrics only
+loc-landscape-docs:
+    @bash scripts/loc-landscape.sh --docs
+
+# Single project metrics (e.g., just loc-project mengram)
+loc-project name:
+    @bash scripts/loc-landscape.sh {{name}}
