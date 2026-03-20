@@ -2,6 +2,8 @@
 
 MCP server + CLI for markdown knowledge bases.
 
+[Read the Book](https://ttdonovan.github.io/kb-mcp/) | [GitHub](https://github.com/ttdonovan/kb-mcp)
+
 Indexes markdown collections into a searchable BM25 index and exposes them
 as [MCP](https://modelcontextprotocol.io/) tools. Configured entirely via
 RON files — no hardcoded paths or project-specific values.
@@ -154,8 +156,6 @@ kb-mcp reindex
 ```
 
 ## Documentation
-
-**[Read the docs](https://ttdonovan.github.io/kb-mcp/)**
 
 Project documentation is built with [mdBook](https://rust-lang.github.io/mdBook/)
 and uses [Mermaid](https://mermaid.js.org/) for architecture diagrams.
