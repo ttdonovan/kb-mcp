@@ -28,6 +28,7 @@
 - [mengram](landscape/mengram.md)
 - [hmem](landscape/hmem.md)
 - [mnemex](landscape/mnemex.md)
+- [Ori-Mnemos](landscape/ori-mnemos.md)
 - [Review Process](landscape/process.md)
 
 # Development

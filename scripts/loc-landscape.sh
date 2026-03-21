@@ -25,6 +25,7 @@ source_metrics() {
         mengram)          tokei "${SANDBOX}/mengram/" -t Python ;;
         hmem)             tokei "${SANDBOX}/hmem/" -t TypeScript ;;
         mnemex)           tokei "${SANDBOX}/mnemex/src/" ;;
+        ori-mnemos)       tokei "${SANDBOX}/Ori-Mnemos/" -t TypeScript ;;
         *)                echo "  Unknown project: ${name}" ;;
     esac
     echo ""
@@ -48,7 +49,7 @@ docs_metrics() {
     echo ""
 }
 
-ALL_PROJECTS="kb-mcp hipocampus obsidian-web-mcp mengram hmem mnemex"
+ALL_PROJECTS="kb-mcp hipocampus obsidian-web-mcp mengram hmem mnemex ori-mnemos"
 
 docs_only=false
 filter=""
