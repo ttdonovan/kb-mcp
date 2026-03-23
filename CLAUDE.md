@@ -4,7 +4,7 @@
 
 Standalone Rust binary crate — MCP server + CLI for markdown knowledge bases.
 Indexes markdown collections (configured via RON) into a BM25 search index
-and exposes 9 MCP tools via rmcp (stdio transport).
+and exposes 10 MCP tools via rmcp (stdio transport).
 
 ## Architecture
 
@@ -32,7 +32,8 @@ kb-mcp/
 │       ├── reindex.rs           # reindex
 │       ├── digest.rs            # kb_digest
 │       ├── query.rs             # kb_query
-│       └── export.rs            # kb_export
+│       ├── export.rs            # kb_export
+│       └── health.rs            # kb_health
 ├── book/                        # mdBook documentation
 └── tests/
 ```

@@ -24,6 +24,9 @@ memvid-core = { version = "2.0", default-features = false, features = ["lex"] }
 # Content hashing
 blake3 = "1"
 
+# Wiki-link extraction for kb_health
+regex = "1"
+
 # Common
 anyhow = "1"
 chrono = "0.4"

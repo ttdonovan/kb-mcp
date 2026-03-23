@@ -113,6 +113,18 @@ pub enum Command {
         #[arg(long)]
         collection: Option<String>,
     },
+    /// Vault health diagnostics — document quality checks
+    Health {
+        /// Filter to a specific collection
+        #[arg(long)]
+        collection: Option<String>,
+        /// Days threshold for staleness (default: 90)
+        #[arg(long, default_value_t = 90)]
+        stale_days: u32,
+        /// Minimum word count for stub detection (default: 50)
+        #[arg(long, default_value_t = 50)]
+        min_words: u32,
+    },
 }
 
 pub fn run(
@@ -355,6 +367,27 @@ pub fn run(
             print!(
                 "{}",
                 format::format_export(&docs_with_bodies, collection.as_deref())
+            );
+        }
+        Command::Health {
+            collection,
+            stale_days,
+            min_words,
+        } => {
+            if let Some(ref coll) = collection
+                && !collections.iter().any(|c| c.name == *coll)
+            {
+                eprintln!("Collection '{}' not found", coll);
+                std::process::exit(1);
+            }
+            println!(
+                "{}",
+                format::format_health(
+                    &index.documents,
+                    collection.as_deref(),
+                    stale_days,
+                    min_words,
+                )
             );
         }
     }

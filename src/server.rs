@@ -149,7 +149,9 @@ impl ServerHandler for KbMcpServer {
                  kb_context for token-efficient briefings, kb_write to create notes, \
                  reindex to refresh after adding new files, kb_digest for vault summary \
                  and coverage overview, kb_query to filter by tags/status/dates, \
-                 and kb_export to export vault as a single markdown document."
+                 kb_export to export vault as a single markdown document, \
+                 and kb_health for document quality diagnostics (missing frontmatter, \
+                 stale content, stubs, orphans, broken wiki-links)."
                     .to_string(),
             )
     }

@@ -8,6 +8,7 @@ pub(crate) mod context;
 pub(crate) mod digest;
 pub(crate) mod documents;
 pub(crate) mod export;
+pub(crate) mod health;
 pub(crate) mod query;
 pub(crate) mod reindex;
 pub(crate) mod search;
@@ -27,4 +28,5 @@ pub(crate) fn combined_router() -> ToolRouter<KbMcpServer> {
         + digest::router()
         + query::router()
         + export::router()
+        + health::router()
 }

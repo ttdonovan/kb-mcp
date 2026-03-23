@@ -433,3 +433,250 @@ pub fn format_export(
 
     output
 }
+
+// --- Health output types ---
+
+#[derive(Serialize)]
+pub struct HealthOutput {
+    pub total_documents_checked: usize,
+    pub total_issues: usize,
+    pub collections: Vec<HealthCollectionOutput>,
+}
+
+#[derive(Serialize)]
+pub struct HealthCollectionOutput {
+    pub name: String,
+    pub doc_count: usize,
+    pub issues: usize,
+    pub missing_created: Vec<HealthDocRef>,
+    pub missing_updated: Vec<HealthDocRef>,
+    pub no_tags: Vec<HealthDocRef>,
+    pub stale: Vec<HealthStaleRef>,
+    pub stubs: Vec<HealthStubRef>,
+    pub orphans: Vec<HealthDocRef>,
+    pub broken_links: Vec<HealthBrokenLinkRef>,
+}
+
+#[derive(Serialize)]
+pub struct HealthDocRef {
+    pub path: String,
+    pub title: String,
+}
+
+#[derive(Serialize)]
+pub struct HealthStaleRef {
+    pub path: String,
+    pub title: String,
+    pub last_date: String,
+}
+
+#[derive(Serialize)]
+pub struct HealthStubRef {
+    pub path: String,
+    pub title: String,
+    pub word_count: usize,
+}
+
+#[derive(Serialize)]
+pub struct HealthBrokenLinkRef {
+    pub source: String,
+    pub target: String,
+    pub raw: String,
+}
+
+/// Build a vault health report — document quality and hygiene checks.
+///
+/// Checks frontmatter completeness (created/updated/tags), content quality
+/// (staleness, stub detection), and link integrity (orphans, broken wiki-links).
+pub fn format_health(
+    documents: &[Document],
+    collection_filter: Option<&str>,
+    stale_days: u32,
+    min_words: u32,
+) -> String {
+    let today = chrono::Local::now().date_naive();
+    let stale_cutoff = today - chrono::Duration::days(stale_days as i64);
+
+    // Filter documents by collection
+    let docs: Vec<&Document> = documents
+        .iter()
+        .filter(|d| collection_filter.is_none_or(|f| d.collection == f))
+        .collect();
+
+    // --- Wiki-link graph (Phase 2) ---
+    let link_re = regex::Regex::new(r"\[\[([^\]]+)\]\]").unwrap();
+    // Build a set of all doc identifiers for resolution
+    // Key: lowercase title or lowercase path (without .md)
+    let mut doc_id_to_idx: HashMap<String, usize> = HashMap::new();
+    for (i, doc) in docs.iter().enumerate() {
+        doc_id_to_idx.insert(doc.title.to_lowercase(), i);
+        doc_id_to_idx.insert(doc.path.to_lowercase(), i);
+        let path_no_ext = doc.path.trim_end_matches(".md").to_lowercase();
+        doc_id_to_idx.insert(path_no_ext, i);
+    }
+
+    // Track inbound links per doc index and broken links per source doc
+    let mut inbound_count: Vec<usize> = vec![0; docs.len()];
+    let mut total_wiki_links = 0usize;
+    // (source_doc_idx, target_string, raw_match)
+    let mut broken: Vec<(usize, String, String)> = Vec::new();
+
+    for (src_idx, doc) in docs.iter().enumerate() {
+        for cap in link_re.captures_iter(&doc.body) {
+            total_wiki_links += 1;
+            let raw = cap[0].to_string();
+            let inner = &cap[1];
+            // Strip alias after | and heading anchor after #
+            let target = inner
+                .split('|')
+                .next()
+                .unwrap_or(inner)
+                .split('#')
+                .next()
+                .unwrap_or(inner)
+                .trim();
+            let target_lower = target.to_lowercase();
+
+            if let Some(&tgt_idx) = doc_id_to_idx.get(&target_lower) {
+                if tgt_idx != src_idx {
+                    inbound_count[tgt_idx] += 1;
+                }
+            } else {
+                // Also try with .md extension
+                let with_ext = format!("{}.md", target_lower);
+                if let Some(&tgt_idx) = doc_id_to_idx.get(&with_ext) {
+                    if tgt_idx != src_idx {
+                        inbound_count[tgt_idx] += 1;
+                    }
+                } else {
+                    broken.push((src_idx, target.to_string(), raw));
+                }
+            }
+        }
+    }
+
+    // --- Group by collection ---
+    let mut coll_docs: HashMap<&str, Vec<(usize, &&Document)>> = HashMap::new();
+    for (i, doc) in docs.iter().enumerate() {
+        coll_docs
+            .entry(&doc.collection)
+            .or_default()
+            .push((i, doc));
+    }
+
+    let mut coll_names: Vec<&str> = coll_docs.keys().copied().collect();
+    coll_names.sort();
+
+    let mut total_checked = 0;
+    let mut total_issues = 0;
+    let mut collections = Vec::new();
+
+    for coll_name in coll_names {
+        let coll_entries = &coll_docs[coll_name];
+        total_checked += coll_entries.len();
+
+        let mut missing_created = Vec::new();
+        let mut missing_updated = Vec::new();
+        let mut no_tags = Vec::new();
+        let mut stale = Vec::new();
+        let mut stubs = Vec::new();
+        let mut orphans = Vec::new();
+        let mut coll_broken = Vec::new();
+
+        for &(doc_global_idx, doc) in coll_entries {
+            let doc_ref = || HealthDocRef {
+                path: doc.path.clone(),
+                title: doc.title.clone(),
+            };
+
+            // Missing created
+            if !doc.frontmatter.contains_key("created") {
+                missing_created.push(doc_ref());
+            }
+
+            // Missing updated
+            if !doc.frontmatter.contains_key("updated") {
+                missing_updated.push(doc_ref());
+            }
+
+            // No tags
+            if doc.tags.is_empty() {
+                no_tags.push(doc_ref());
+            }
+
+            // Staleness: use updated, fall back to created
+            let last_date_str = doc
+                .frontmatter
+                .get("updated")
+                .or_else(|| doc.frontmatter.get("created"))
+                .map(yaml_value_to_string);
+
+            if let Some(ref date_str) = last_date_str
+                && let Ok(date) = chrono::NaiveDate::parse_from_str(date_str, "%Y-%m-%d")
+                && date < stale_cutoff
+            {
+                stale.push(HealthStaleRef {
+                    path: doc.path.clone(),
+                    title: doc.title.clone(),
+                    last_date: date_str.clone(),
+                });
+            }
+
+            // Stubs
+            let word_count = doc.body.split_whitespace().count();
+            if word_count < min_words as usize {
+                stubs.push(HealthStubRef {
+                    path: doc.path.clone(),
+                    title: doc.title.clone(),
+                    word_count,
+                });
+            }
+
+            // Orphans (only if vault has wiki-links at all)
+            if total_wiki_links > 0 && inbound_count[doc_global_idx] == 0 {
+                orphans.push(doc_ref());
+            }
+
+            // Broken links from this doc
+            for (src_idx, target, raw) in &broken {
+                if *src_idx == doc_global_idx {
+                    coll_broken.push(HealthBrokenLinkRef {
+                        source: doc.path.clone(),
+                        target: target.clone(),
+                        raw: raw.clone(),
+                    });
+                }
+            }
+        }
+
+        let issues = missing_created.len()
+            + missing_updated.len()
+            + no_tags.len()
+            + stale.len()
+            + stubs.len()
+            + orphans.len()
+            + coll_broken.len();
+        total_issues += issues;
+
+        collections.push(HealthCollectionOutput {
+            name: coll_name.to_string(),
+            doc_count: coll_entries.len(),
+            issues,
+            missing_created,
+            missing_updated,
+            no_tags,
+            stale,
+            stubs,
+            orphans,
+            broken_links: coll_broken,
+        });
+    }
+
+    let output = HealthOutput {
+        total_documents_checked: total_checked,
+        total_issues,
+        collections,
+    };
+
+    serde_json::to_string_pretty(&output).unwrap_or_default()
+}

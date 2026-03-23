@@ -124,6 +124,25 @@ frontmatter headers. Use to create a portable snapshot of knowledge base content
 
 **Returns:** Concatenated markdown with document separators and frontmatter metadata.
 
+## kb_health
+
+Vault health diagnostics — checks document quality across collections. Flags
+missing frontmatter dates, untagged docs, stale content, stub documents,
+orphaned notes (no inbound wiki-links), and broken wiki-links. Use `kb_digest`
+for coverage overview, `kb_health` for quality issues.
+
+**Parameters:**
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `collection` | String | No | Filter to a specific collection |
+| `stale_days` | Number | No | Days threshold for staleness (default: 90) |
+| `min_words` | Number | No | Minimum word count for stub detection (default: 50) |
+
+**Returns:** JSON with `total_documents_checked`, `total_issues`, and per-collection
+arrays for each check: `missing_created`, `missing_updated`, `no_tags`, `stale`,
+`stubs`, `orphans`, `broken_links`.
+
 ## reindex
 
 Rebuild the search index from all collections on disk. Use after editing

@@ -68,7 +68,8 @@ src/
     ├── reindex.rs   reindex — rebuild index from disk
     ├── digest.rs    kb_digest — vault summary with topics, recency, gap hints
     ├── query.rs     kb_query — frontmatter filtering (tag, status, date, sources)
-    └── export.rs    kb_export — concatenate vault into single markdown document
+    ├── export.rs    kb_export — concatenate vault into single markdown document
+    └── health.rs    kb_health — vault health diagnostics (quality, orphans, broken links)
 ```
 
 ## Data Model

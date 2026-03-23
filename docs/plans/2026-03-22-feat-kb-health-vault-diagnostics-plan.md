@@ -1,7 +1,7 @@
 ---
 title: "feat: kb_health — vault health diagnostics tool"
 type: feat
-status: active
+status: completed
 date: 2026-03-22
 origin: docs/brainstorms/2026-03-21-ori-mnemos-learnings-brainstorm.md
 ---
@@ -156,41 +156,41 @@ distinguishing from `kb_digest` (coverage overview).
 ## Acceptance Criteria
 
 ### Frontmatter Checks
-- [ ] Flags documents missing `created` frontmatter field
-- [ ] Flags documents missing `updated` frontmatter field
-- [ ] Flags documents with empty tags list
-- [ ] Flags stale documents (last date > `stale_days` threshold)
-- [ ] Staleness uses `updated` with `created` fallback
-- [ ] Documents missing both dates excluded from staleness (not double-flagged)
+- [x] Flags documents missing `created` frontmatter field
+- [x] Flags documents missing `updated` frontmatter field
+- [x] Flags documents with empty tags list
+- [x] Flags stale documents (last date > `stale_days` threshold)
+- [x] Staleness uses `updated` with `created` fallback
+- [x] Documents missing both dates excluded from staleness (not double-flagged)
 
 ### Content Checks
-- [ ] Flags stub documents (word count < `min_words` threshold)
-- [ ] Word count uses `split_whitespace().count()` on stripped body
+- [x] Flags stub documents (word count < `min_words` threshold)
+- [x] Word count uses `split_whitespace().count()` on stripped body
 
 ### Link Analysis
-- [ ] Extracts wiki-links via `\[\[([^\]]+)\]\]` regex
-- [ ] Strips alias text after `|` and heading anchors after `#`
-- [ ] Resolves targets by title (case-insensitive) then path (case-insensitive)
-- [ ] Flags orphan documents (zero inbound wiki-links)
-- [ ] Flags broken wiki-links (target not resolved to any document)
-- [ ] Skips orphan detection when vault has zero wiki-links total
-- [ ] Link resolution is global across all collections
+- [x] Extracts wiki-links via `\[\[([^\]]+)\]\]` regex
+- [x] Strips alias text after `|` and heading anchors after `#`
+- [x] Resolves targets by title (case-insensitive) then path (case-insensitive)
+- [x] Flags orphan documents (zero inbound wiki-links)
+- [x] Flags broken wiki-links (target not resolved to any document)
+- [x] Skips orphan detection when vault has zero wiki-links total
+- [x] Link resolution is global across all collections
 
 ### Parameters & Errors
-- [ ] `collection` filter works correctly
-- [ ] Invalid collection name returns error with available names
-- [ ] `stale_days` defaults to 90, configurable
-- [ ] `min_words` defaults to 50, configurable
+- [x] `collection` filter works correctly
+- [x] Invalid collection name returns error with available names
+- [x] `stale_days` defaults to 90, configurable
+- [x] `min_words` defaults to 50, configurable
 
 ### Quality Gates
-- [ ] New MCP tool `kb_health` returns health report JSON
-- [ ] CLI subcommand `health` with matching flags
-- [ ] Format function in `format.rs` (not inline in tool)
-- [ ] Auto-reindex guard before index read
-- [ ] `cargo clippy` clean
-- [ ] All existing tools still work (no regression)
-- [ ] Book updated with kb_health in reference/tools.md
-- [ ] Server instructions updated
+- [x] New MCP tool `kb_health` returns health report JSON
+- [x] CLI subcommand `health` with matching flags
+- [x] Format function in `format.rs` (not inline in tool)
+- [x] Auto-reindex guard before index read
+- [x] `cargo clippy` clean
+- [x] All existing tools still work (no regression)
+- [x] Book updated with kb_health in reference/tools.md
+- [x] Server instructions updated
 
 ## Implementation Phases
 
