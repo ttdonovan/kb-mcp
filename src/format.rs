@@ -503,10 +503,12 @@ pub fn format_health(
         .filter(|d| collection_filter.is_none_or(|f| d.collection == f))
         .collect();
 
-    // --- Wiki-link graph (Phase 2) ---
-    let link_re = regex::Regex::new(r"\[\[([^\]]+)\]\]").unwrap();
-    // Build a set of all doc identifiers for resolution
-    // Key: lowercase title or lowercase path (without .md)
+    // --- Wiki-link graph ---
+    static WIKI_LINK_RE: std::sync::LazyLock<regex::Regex> =
+        std::sync::LazyLock::new(|| regex::Regex::new(r"\[\[([^\]]+)\]\]").unwrap());
+
+    // Build a set of all doc identifiers for resolution.
+    // Keys: lowercase title, lowercase path, lowercase path without .md extension.
     let mut doc_id_to_idx: HashMap<String, usize> = HashMap::new();
     for (i, doc) in docs.iter().enumerate() {
         doc_id_to_idx.insert(doc.title.to_lowercase(), i);
@@ -515,14 +517,13 @@ pub fn format_health(
         doc_id_to_idx.insert(path_no_ext, i);
     }
 
-    // Track inbound links per doc index and broken links per source doc
+    // Track inbound links per doc index and broken links keyed by source doc
     let mut inbound_count: Vec<usize> = vec![0; docs.len()];
     let mut total_wiki_links = 0usize;
-    // (source_doc_idx, target_string, raw_match)
-    let mut broken: Vec<(usize, String, String)> = Vec::new();
+    let mut broken_by_source: HashMap<usize, Vec<(String, String)>> = HashMap::new();
 
     for (src_idx, doc) in docs.iter().enumerate() {
-        for cap in link_re.captures_iter(&doc.body) {
+        for cap in WIKI_LINK_RE.captures_iter(&doc.body) {
             total_wiki_links += 1;
             let raw = cap[0].to_string();
             let inner = &cap[1];
@@ -542,15 +543,10 @@ pub fn format_health(
                     inbound_count[tgt_idx] += 1;
                 }
             } else {
-                // Also try with .md extension
-                let with_ext = format!("{}.md", target_lower);
-                if let Some(&tgt_idx) = doc_id_to_idx.get(&with_ext) {
-                    if tgt_idx != src_idx {
-                        inbound_count[tgt_idx] += 1;
-                    }
-                } else {
-                    broken.push((src_idx, target.to_string(), raw));
-                }
+                broken_by_source
+                    .entry(src_idx)
+                    .or_default()
+                    .push((target.to_string(), raw));
             }
         }
     }
@@ -637,9 +633,9 @@ pub fn format_health(
                 orphans.push(doc_ref());
             }
 
-            // Broken links from this doc
-            for (src_idx, target, raw) in &broken {
-                if *src_idx == doc_global_idx {
+            // Broken links from this doc (O(1) lookup via pre-indexed map)
+            if let Some(entries) = broken_by_source.get(&doc_global_idx) {
+                for (target, raw) in entries {
                     coll_broken.push(HealthBrokenLinkRef {
                         source: doc.path.clone(),
                         target: target.clone(),
