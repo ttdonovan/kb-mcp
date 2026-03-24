@@ -6,7 +6,7 @@ What's been built, what's next, and when each phase makes sense.
 
 ### Standalone MCP Server (v2)
 
-RON-configured binary with 9 MCP tools, full CLI parity, and zero
+RON-configured binary with 10 MCP tools, full CLI parity, and zero
 hardcoded project-specific values. Open sourced at
 [github.com/ttdonovan/kb-mcp](https://github.com/ttdonovan/kb-mcp).
 

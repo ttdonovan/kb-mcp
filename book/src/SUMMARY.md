@@ -29,6 +29,7 @@
 - [hmem](landscape/hmem.md)
 - [mnemex](landscape/mnemex.md)
 - [Ori-Mnemos](landscape/ori-mnemos.md)
+- [Agentic Design Patterns](landscape/agentic-design-patterns.md)
 - [Review Process](landscape/process.md)
 
 # Development
