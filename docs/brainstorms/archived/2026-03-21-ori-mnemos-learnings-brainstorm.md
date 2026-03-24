@@ -1,7 +1,7 @@
 ---
 title: "Ori-Mnemos Learnings: What to Adopt for kb-mcp and Beyond"
 type: exploration
-status: draft
+status: completed
 date: 2026-03-21
 origin: book/src/landscape/ori-mnemos.md
 ---

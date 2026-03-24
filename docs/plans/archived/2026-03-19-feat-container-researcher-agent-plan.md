@@ -326,7 +326,7 @@ vault-status:
 
 ### Origin
 
-- **Brainstorm:** [docs/brainstorms/2026-03-19-container-researcher-agent-brainstorm.md](../brainstorms/2026-03-19-container-researcher-agent-brainstorm.md) — ZeroClaw runtime, volume mount, web research via Earl, manual trigger
+- **Brainstorm:** [docs/brainstorms/2026-03-19-container-researcher-agent-brainstorm.md](../../brainstorms/archived/2026-03-19-container-researcher-agent-brainstorm.md) — ZeroClaw runtime, volume mount, web research via Earl, manual trigger
 
 ### Reference Architecture
 

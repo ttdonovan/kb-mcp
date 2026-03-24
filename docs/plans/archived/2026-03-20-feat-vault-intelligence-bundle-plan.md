@@ -231,7 +231,7 @@ frontmatter headers.
 
 ### Origin
 
-- **Brainstorm:** [docs/brainstorms/2026-03-20-vault-intelligence-bundle-brainstorm.md](../brainstorms/2026-03-20-vault-intelligence-bundle-brainstorm.md) — four features bundled, in-memory approaches, mtime for auto-reindex
+- **Brainstorm:** [docs/brainstorms/2026-03-20-vault-intelligence-bundle-brainstorm.md](../../brainstorms/archived/2026-03-20-vault-intelligence-bundle-brainstorm.md) — four features bundled, in-memory approaches, mtime for auto-reindex
 
 ### Landscape Inspiration
 

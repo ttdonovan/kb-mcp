@@ -1,7 +1,7 @@
 ---
 title: "feat: Hybrid BM25 + vector search via memvid-core vec feature"
 type: feat
-status: active
+status: completed
 date: 2026-03-19
 origin: docs/brainstorms/2026-03-18-kb-mcp-v2-brainstorm.md
 ---
@@ -248,7 +248,7 @@ hybrid search compile with `cargo build --features hybrid`.
 
 ### Origin
 
-- **Brainstorm Phase 2:** [docs/brainstorms/2026-03-18-kb-mcp-v2-brainstorm.md](../brainstorms/2026-03-18-kb-mcp-v2-brainstorm.md) — HNSW + ONNX embeddings, RRF fusion, `search_smart` tool
+- **Brainstorm Phase 2:** [docs/brainstorms/2026-03-18-kb-mcp-v2-brainstorm.md](../../brainstorms/archived/2026-03-18-kb-mcp-v2-brainstorm.md) — HNSW + ONNX embeddings, RRF fusion, `search_smart` tool
 
 ### Key Files
 

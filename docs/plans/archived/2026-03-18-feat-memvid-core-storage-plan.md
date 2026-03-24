@@ -290,7 +290,7 @@ Multiple chunks per document share the same URI. Search deduplication
 
 ### Origin
 
-- **Brainstorm:** [docs/brainstorms/2026-03-18-kb-mcp-v2-brainstorm.md](../brainstorms/2026-03-18-kb-mcp-v2-brainstorm.md) — memvid-core as dependency (not cherry-pick), persistent `.mv2` storage, smart chunking, incremental reindex
+- **Brainstorm:** [docs/brainstorms/2026-03-18-kb-mcp-v2-brainstorm.md](../../brainstorms/archived/2026-03-18-kb-mcp-v2-brainstorm.md) — memvid-core as dependency (not cherry-pick), persistent `.mv2` storage, smart chunking, incremental reindex
 
 ### Key Files
 

@@ -224,7 +224,7 @@ distinguishing from `kb_digest` (coverage overview).
 
 ### Origin
 
-- **Brainstorm:** [docs/brainstorms/2026-03-21-ori-mnemos-learnings-brainstorm.md](../brainstorms/2026-03-21-ori-mnemos-learnings-brainstorm.md) — vault health diagnostics classified as the one Ori-Mnemos pattern that fits kb-mcp's identity
+- **Brainstorm:** [docs/brainstorms/2026-03-21-ori-mnemos-learnings-brainstorm.md](../../brainstorms/archived/2026-03-21-ori-mnemos-learnings-brainstorm.md) — vault health diagnostics classified as the one Ori-Mnemos pattern that fits kb-mcp's identity
 
 ### Landscape Inspiration
 

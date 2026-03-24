@@ -164,9 +164,9 @@ Used by `get_document`, `kb_export`, and CLI export.
 
 ## Related Documents
 
-- [Brainstorm](../../brainstorms/2026-03-20-vault-intelligence-bundle-brainstorm.md)
-- [Implementation plan](../../plans/2026-03-20-feat-vault-intelligence-bundle-plan.md) (completed)
-- [Deferred P2s plan](../../plans/2026-03-20-fix-vault-intelligence-deferred-p2s-plan.md) (active)
+- [Brainstorm](../../brainstorms/archived/2026-03-20-vault-intelligence-bundle-brainstorm.md)
+- [Implementation plan](../../plans/archived/2026-03-20-feat-vault-intelligence-bundle-plan.md) (completed)
+- [Deferred P2s plan](../../plans/archived/2026-03-20-fix-vault-intelligence-deferred-p2s-plan.md) (active)
 - [Book tools reference](../../book/src/reference/tools.md)
 
 ## Doc Gaps Identified

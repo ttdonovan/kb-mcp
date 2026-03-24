@@ -1365,6 +1365,7 @@ dependencies = [
  "clap",
  "dirs",
  "memvid-core",
+ "regex",
  "rmcp",
  "ron",
  "schemars",

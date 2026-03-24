@@ -354,7 +354,7 @@ sha2 = "0.10"
 
 ### Origin
 
-- **Brainstorm document:** [docs/brainstorms/2026-03-18-kb-mcp-v2-brainstorm.md](../brainstorms/2026-03-18-kb-mcp-v2-brainstorm.md) — key decisions carried forward: memvid-core as dependency (not cherry-pick), per-collection config model, `kb_context` + `kb_write` in initial scope
+- **Brainstorm document:** [docs/brainstorms/2026-03-18-kb-mcp-v2-brainstorm.md](../../brainstorms/archived/2026-03-18-kb-mcp-v2-brainstorm.md) — key decisions carried forward: memvid-core as dependency (not cherry-pick), per-collection config model, `kb_context` + `kb_write` in initial scope
 
 ### External References
 
