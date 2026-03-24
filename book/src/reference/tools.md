@@ -113,16 +113,18 @@ Returns document metadata without body content.
 
 ## kb_export
 
-Export vault as a single markdown document. Concatenates all documents with
-frontmatter headers. Use to create a portable snapshot of knowledge base content.
+Export vault as a single markdown document. Concatenates documents with
+frontmatter headers, limited to `max_documents` to prevent unbounded output.
 
 **Parameters:**
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `collection` | String | No | Collection to export (default: all) |
+| `max_documents` | Number | No | Maximum documents to include (default: 200) |
 
 **Returns:** Concatenated markdown with document separators and frontmatter metadata.
+Appends a truncation notice if the limit is hit.
 
 ## kb_health
 

@@ -6,6 +6,7 @@
 //! lives behind Arcs so cloning is cheap.
 
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use rmcp::ServerHandler;
 use rmcp::model::{Implementation, ServerCapabilities, ServerInfo};
@@ -16,6 +17,10 @@ use crate::index::Index;
 use crate::search::SearchEngine;
 use crate::tools;
 
+/// Minimum seconds between auto-reindex checks. Prevents redundant filesystem
+/// walks when agents fire multiple tool calls in rapid succession.
+const AUTO_REINDEX_COOLDOWN_SECS: u64 = 5;
+
 #[derive(Clone)]
 pub struct KbMcpServer {
     pub(crate) index: Arc<RwLock<Index>>,
@@ -24,6 +29,8 @@ pub struct KbMcpServer {
     pub(crate) cache_dir: std::path::PathBuf,
     #[cfg(feature = "hybrid")]
     pub(crate) embedder: Arc<memvid_core::LocalTextEmbedder>,
+    /// Epoch seconds of the last auto-reindex. Used for debounce.
+    last_auto_reindex: Arc<AtomicU64>,
     tool_router: rmcp::handler::server::router::tool::ToolRouter<Self>,
 }
 
@@ -42,6 +49,7 @@ impl KbMcpServer {
             cache_dir,
             #[cfg(feature = "hybrid")]
             embedder,
+            last_auto_reindex: Arc::new(AtomicU64::new(0)),
             tool_router: tools::combined_router(),
         }
     }
@@ -53,6 +61,17 @@ impl KbMcpServer {
     /// since the last sync. This is one `stat()` per collection — microseconds
     /// for typical vaults. Deep content edits still need explicit `reindex`.
     pub(crate) async fn auto_reindex_stale_collections(&self) {
+        // Debounce: skip if less than COOLDOWN seconds since last check
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+        let last = self.last_auto_reindex.load(Ordering::Relaxed);
+        if now.saturating_sub(last) < AUTO_REINDEX_COOLDOWN_SECS {
+            return;
+        }
+        self.last_auto_reindex.store(now, Ordering::Relaxed);
+
         let mut stale_collections = Vec::new();
 
         for collection in self.collections.iter() {
@@ -82,15 +101,18 @@ impl KbMcpServer {
 
         tracing::info!("auto-reindex: stale collections: {:?}", stale_collections);
 
-        // Rebuild the full index to pick up new/removed documents
-        let new_index = crate::index::Index::build(&self.collections);
+        // Incrementally rebuild only stale collections instead of the full index.
+        // This avoids re-scanning fresh collections, which is the main cost.
+        let mut index = self.index.write().await;
 
         for collection in self.collections.iter() {
             if !stale_collections.contains(&collection.name) {
                 continue;
             }
 
-            let current_hashes = new_index
+            index.rebuild_collection(collection, &self.collections);
+
+            let current_hashes = index
                 .content_hashes
                 .get(&collection.name)
                 .cloned()
@@ -100,7 +122,7 @@ impl KbMcpServer {
                 &self.cache_dir,
                 collection,
                 &current_hashes,
-                &new_index.documents,
+                &index.documents,
                 #[cfg(feature = "hybrid")]
                 &self.embedder,
             ) {
@@ -122,10 +144,6 @@ impl KbMcpServer {
                 }
             }
         }
-
-        // Update the in-memory index
-        let mut index = self.index.write().await;
-        *index = new_index;
     }
 
     /// Read a document fresh from disk rather than returning indexed content.

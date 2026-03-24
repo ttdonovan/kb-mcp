@@ -112,6 +112,9 @@ pub enum Command {
         /// Collection to export (default: all)
         #[arg(long)]
         collection: Option<String>,
+        /// Maximum documents to include (default: 200)
+        #[arg(long, default_value_t = 200)]
+        max_documents: usize,
     },
     /// Vault health diagnostics — document quality checks
     Health {
@@ -336,7 +339,20 @@ pub fn run(
                 .collect();
             println!("{}", format::format_query(&results));
         }
-        Command::Export { collection } => {
+        Command::Export {
+            collection,
+            max_documents,
+        } => {
+            let matching_count = index
+                .documents
+                .iter()
+                .filter(|doc| {
+                    collection
+                        .as_ref()
+                        .is_none_or(|f| doc.collection == *f)
+                })
+                .count();
+
             let docs_with_bodies: Vec<(&crate::types::Document, String)> = index
                 .documents
                 .iter()
@@ -345,6 +361,7 @@ pub fn run(
                         .as_ref()
                         .is_none_or(|f| doc.collection == *f)
                 })
+                .take(max_documents)
                 .filter_map(|doc| {
                     let coll = collections.iter().find(|c| c.name == doc.collection)?;
                     let file_path = coll.path.join(&doc.path);
@@ -364,10 +381,18 @@ pub fn run(
                 std::process::exit(1);
             }
 
-            print!(
-                "{}",
-                format::format_export(&docs_with_bodies, collection.as_deref())
-            );
+            let mut output =
+                format::format_export(&docs_with_bodies, collection.as_deref());
+
+            if matching_count > max_documents {
+                output.push_str(&format!(
+                    "... truncated: showing {} of {} documents\n",
+                    docs_with_bodies.len(),
+                    matching_count
+                ));
+            }
+
+            print!("{}", output);
         }
         Command::Health {
             collection,

@@ -1,7 +1,7 @@
 ---
 title: "fix: Vault Intelligence Bundle — deferred P2 review findings"
 type: fix
-status: active
+status: completed
 date: 2026-03-20
 origin: Code review of feat/vault-intelligence-bundle branch
 ---
@@ -85,20 +85,20 @@ add a `section` filter parameter for targeted exports.
 ## Acceptance Criteria
 
 ### Incremental auto-reindex
-- [ ] Only stale collections are re-scanned during auto-reindex
-- [ ] Fresh collections are untouched (no filesystem walk)
-- [ ] Index remains consistent after partial rebuild
+- [x] Only stale collections are re-scanned during auto-reindex
+- [x] Fresh collections are untouched (no filesystem walk)
+- [x] Index remains consistent after partial rebuild
 
 ### Debounce/cooldown
-- [ ] Auto-reindex skipped if last reindex was < 5 seconds ago
-- [ ] First search after cooldown still triggers reindex if stale
-- [ ] Cooldown is per-server, not per-collection
+- [x] Auto-reindex skipped if last reindex was < 5 seconds ago
+- [x] First search after cooldown still triggers reindex if stale
+- [x] Cooldown is per-server, not per-collection
 
 ### Bounded kb_export
-- [ ] `max_documents` parameter with sensible default
-- [ ] Truncation message when limit is hit
-- [ ] CLI `--max-documents` flag with parity
-- [ ] Book docs updated
+- [x] `max_documents` parameter with sensible default
+- [x] Truncation message when limit is hit
+- [x] CLI `--max-documents` flag with parity
+- [x] Book docs updated
 
 ## Sources & References
 

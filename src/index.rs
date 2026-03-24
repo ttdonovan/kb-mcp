@@ -51,6 +51,40 @@ impl Index {
         }
     }
 
+    /// Rebuild a single collection's documents and hashes in place.
+    ///
+    /// Removes all documents belonging to `collection_name`, re-scans the
+    /// collection's directory, and rebuilds sections from the updated doc list.
+    /// Much cheaper than `Index::build` when only one collection changed.
+    pub fn rebuild_collection(
+        &mut self,
+        collection: &ResolvedCollection,
+        all_collections: &[ResolvedCollection],
+    ) {
+        // Remove old docs for this collection
+        self.documents.retain(|d| d.collection != collection.name);
+
+        // Re-scan the collection
+        if collection.path.is_dir() {
+            let mut coll_hashes = store::HashIndex::new();
+            scan_dir(
+                &collection.path,
+                &collection.path,
+                &collection.name,
+                &collection.sections,
+                &mut self.documents,
+                &mut coll_hashes,
+            );
+            self.content_hashes
+                .insert(collection.name.clone(), coll_hashes);
+        } else {
+            self.content_hashes.remove(&collection.name);
+        }
+
+        // Rebuild sections from the full (updated) document list
+        self.sections = build_sections(&self.documents, all_collections);
+    }
+
     pub fn find_by_path(&self, path: &str) -> Option<&Document> {
         self.documents.iter().find(|d| d.path == path)
     }
