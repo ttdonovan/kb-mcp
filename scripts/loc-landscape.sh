@@ -26,6 +26,8 @@ source_metrics() {
         hmem)             tokei "${SANDBOX}/hmem/" -t TypeScript ;;
         mnemex)           tokei "${SANDBOX}/mnemex/src/" ;;
         ori-mnemos)       tokei "${SANDBOX}/Ori-Mnemos/" -t TypeScript ;;
+        cq)               tokei "${SANDBOX}/cq/" -e node_modules -e dist -e build -e __pycache__ ;;
+        prism-mcp)        tokei "${SANDBOX}/prism-mcp/" -e node_modules -e dist -e build ;;
         *)                echo "  Unknown project: ${name}" ;;
     esac
     echo ""
@@ -49,7 +51,7 @@ docs_metrics() {
     echo ""
 }
 
-ALL_PROJECTS="kb-mcp hipocampus obsidian-web-mcp mengram hmem mnemex ori-mnemos"
+ALL_PROJECTS="kb-mcp hipocampus obsidian-web-mcp mengram hmem mnemex ori-mnemos cq prism-mcp"
 
 docs_only=false
 filter=""

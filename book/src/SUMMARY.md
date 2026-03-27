@@ -29,6 +29,8 @@
 - [hmem](landscape/hmem.md)
 - [mnemex](landscape/mnemex.md)
 - [Ori-Mnemos](landscape/ori-mnemos.md)
+- [cq](landscape/cq.md)
+- [prism-mcp](landscape/prism-mcp.md)
 - [Agentic Design Patterns](landscape/agentic-design-patterns.md)
 - [Review Process](landscape/process.md)
 

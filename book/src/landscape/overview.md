@@ -14,6 +14,8 @@ fits, what patterns to adopt, and where to differentiate.
 | [mengram](mengram.md) | Cloud memory service | Python + JS | Semantic (cloud) | Yes | Yes | Cloud |
 | [hmem](hmem.md) | Hierarchical memory | TypeScript | Tree traversal | stdio | Yes | Local |
 | [mnemex](mnemex.md) | Semantic code search | TypeScript | BM25 + vector (LanceDB) | stdio | No | Local |
+| [cq](cq.md) | Agent knowledge commons | Python + TS | FTS5 + domain tags | stdio | Yes | Local + Team API |
+| [prism-mcp](prism-mcp.md) | Agent session memory | TypeScript | FTS5 + sqlite-vec + TurboQuant | stdio | Yes | Local or Cloud |
 
 ## Source Code Metrics
 
@@ -29,6 +31,8 @@ node_modules.
 | mengram | Python (core) | 48 | 22,097 | 1,007 | 25,907 |
 | hmem | TypeScript | 10 | 6,569 | 577 | 7,617 |
 | mnemex | TypeScript + TSX (src/) | 388 | 86,919 | 20,113 | 120,031 |
+| cq | Python + TypeScript | 81 | 10,129 | 1,667 | 14,378 |
+| prism-mcp | TypeScript + SQL | 121 | 28,367 | 8,587 | 40,977 |
 
 **Notes:** mengram includes cloud backend, SDKs, and integrations in its
 Python source. mnemex `src/` includes the core engine, CLI, and MCP
@@ -47,6 +51,8 @@ Markdown files as a proxy for documentation investment.
 | mengram | 17 | 1,871 | 0.1x |
 | hmem | 11 | 2,710 | 0.4x |
 | mnemex | 74 | 23,808 | 0.3x |
+| cq | 12 | 2,280 | 0.2x |
+| prism-mcp | 9 | 1,466 | 0.05x |
 
 **Observations:**
 
@@ -71,7 +77,12 @@ The closest overlap is with obsidian-web-mcp (both serve markdown vaults
 via MCP), but they differ on transport (local stdio vs remote HTTP) and
 search quality (BM25-ranked vs ripgrep grep).
 
-The memory-focused projects (hipocampus, mengram, hmem) are **complementary**
-rather than competitive — they manage agent session memory, while kb-mcp
-serves reference knowledge. An agent could use hmem for working memory
-and kb-mcp for its knowledge base.
+The memory-focused projects (hipocampus, mengram, hmem, prism-mcp) are
+**complementary** rather than competitive — they manage agent session memory,
+while kb-mcp serves reference knowledge. An agent could use hmem for working
+memory and kb-mcp for its knowledge base.
+
+cq represents a third category: **collective agent learning**. Where kb-mcp
+serves curated human-authored knowledge and memory projects persist agent
+state, cq captures wisdom that emerges from agent sessions and shares it
+across agents. All three categories coexist naturally.
