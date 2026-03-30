@@ -36,6 +36,14 @@ auto-reindex via directory mtime checks. Brings the tool count from 6 to 9.
 `kb_write` also gained optional `directory` and `filename` parameters for
 hierarchical collection structures.
 
+### Cargo Workspace Split
+
+Reorganized from a single binary crate into a three-crate workspace:
+`kb-core` (shared library), `kb-cli` (binary `kb`), `kb-mcp-server`
+(binary `kb-mcp`). Eliminates CLI/MCP code duplication, guarantees
+behavioral parity through shared `kb_core::format::*` functions, and
+enables independent compilation with clean dependency isolation.
+
 ## Up Next
 
 ### Draft Reviewer Agent

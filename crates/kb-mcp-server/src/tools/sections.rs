@@ -1,6 +1,5 @@
 use rmcp::model::CallToolResult;
 
-use crate::format;
 use crate::server::KbMcpServer;
 
 pub(crate) fn router() -> rmcp::handler::server::router::tool::ToolRouter<KbMcpServer> {
@@ -15,7 +14,7 @@ impl KbMcpServer {
     )]
     pub(crate) async fn list_sections(&self) -> Result<CallToolResult, rmcp::ErrorData> {
         let index = self.index.read().await;
-        let json = format::format_sections(&index.sections);
+        let json = kb_core::format::format_sections(&index.sections);
         Ok(CallToolResult::success(vec![rmcp::model::Content::text(
             json,
         )]))

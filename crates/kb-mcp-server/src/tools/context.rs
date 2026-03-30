@@ -3,7 +3,6 @@ use rmcp::model::CallToolResult;
 use schemars::JsonSchema;
 use serde::Deserialize;
 
-use crate::format;
 use crate::server::KbMcpServer;
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -33,7 +32,7 @@ impl KbMcpServer {
 
         match doc {
             Some(doc) => {
-                let json = format::format_context(doc);
+                let json = kb_core::format::format_context(doc);
                 Ok(CallToolResult::success(vec![rmcp::model::Content::text(
                     json,
                 )]))

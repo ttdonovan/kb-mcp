@@ -3,7 +3,6 @@ use rmcp::model::CallToolResult;
 use schemars::JsonSchema;
 use serde::Deserialize;
 
-use crate::format;
 use crate::server::KbMcpServer;
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -33,14 +32,13 @@ impl KbMcpServer {
 
         match doc {
             Some(doc) => {
-                // Read fresh from disk if possible
                 let content = self.read_fresh(doc);
                 let json = if let Some(fresh) = content {
                     let mut fresh_doc = doc.clone();
                     fresh_doc.body = fresh;
-                    format::format_document(&fresh_doc, true)
+                    kb_core::format::format_document(&fresh_doc, true)
                 } else {
-                    format::format_document(doc, true)
+                    kb_core::format::format_document(doc, true)
                 };
                 Ok(CallToolResult::success(vec![rmcp::model::Content::text(
                     json,

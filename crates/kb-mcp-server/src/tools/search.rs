@@ -3,7 +3,6 @@ use rmcp::model::CallToolResult;
 use schemars::JsonSchema;
 use serde::Deserialize;
 
-use crate::format;
 use crate::server::KbMcpServer;
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -39,7 +38,6 @@ impl KbMcpServer {
         &self,
         Parameters(params): Parameters<SearchParams>,
     ) -> Result<CallToolResult, rmcp::ErrorData> {
-        // Auto-reindex: check if any collection has changed since last sync
         self.auto_reindex_stale_collections().await;
 
         let index = self.index.read().await;
@@ -51,7 +49,7 @@ impl KbMcpServer {
             params.max_results,
         );
 
-        let json = format::format_search(&params.query, &results, &index.documents);
+        let json = kb_core::format::format_search(&params.query, &results, &index.documents);
         Ok(CallToolResult::success(vec![rmcp::model::Content::text(
             json,
         )]))

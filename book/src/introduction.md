@@ -76,19 +76,20 @@ project works — using the very tool the project builds.
 ## Quick Start
 
 ```sh
-# Install (BM25 keyword search)
-cargo install --path .
+# Install both binaries (CLI `kb` + MCP server `kb-mcp`)
+just install
 
-# Or install with hybrid search
-cargo install --path . --features hybrid
+# Or install individually
+cargo install --path crates/kb-cli          # installs `kb`
+cargo install --path crates/kb-mcp-server   # installs `kb-mcp`
 
 # Create config
 cp collections.example.ron collections.ron
 # Edit paths to point at your markdown directories
 
 # Use as CLI
-kb-mcp list-sections
-kb-mcp search --query "your query"
+kb list-sections
+kb search --query "your query"
 
-# Use as MCP server (register in .mcp.json)
+# Use as MCP server (register in .mcp.json — binary name is still `kb-mcp`)
 ```

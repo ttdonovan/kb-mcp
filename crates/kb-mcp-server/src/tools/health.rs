@@ -1,15 +1,10 @@
 //! Vault health diagnostics — document quality and hygiene checks.
-//!
-//! Flags missing frontmatter, stale content, stub documents, orphaned notes,
-//! and broken wiki-links. Inspired by Ori-Mnemos `ori_health`. Complements
-//! `kb_digest` (coverage overview) with quality signals.
 
 use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::CallToolResult;
 use schemars::JsonSchema;
 use serde::Deserialize;
 
-use crate::format;
 use crate::server::KbMcpServer;
 
 fn default_stale_days() -> u32 {
@@ -47,7 +42,6 @@ impl KbMcpServer {
         &self,
         Parameters(params): Parameters<HealthParams>,
     ) -> Result<CallToolResult, rmcp::ErrorData> {
-        // Validate collection name upfront
         if let Some(ref coll) = params.collection
             && !self.collections.iter().any(|c| c.name == *coll)
         {
@@ -64,7 +58,7 @@ impl KbMcpServer {
 
         self.auto_reindex_stale_collections().await;
         let index = self.index.read().await;
-        let json = format::format_health(
+        let json = kb_core::format::format_health(
             &index.documents,
             params.collection.as_deref(),
             params.stale_days,

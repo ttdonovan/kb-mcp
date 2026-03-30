@@ -8,29 +8,38 @@ default:
 # Build
 # =============================================================================
 
-# Build (debug)
+# Build all workspace crates (debug)
 build:
-    @cargo build
+    @cargo build --workspace
 
-# Build (release)
+# Build all workspace crates (release)
 release:
-    @cargo build --release
+    @cargo build --release --workspace
 
 # Check without building
 check:
-    @cargo check
+    @cargo check --workspace
 
 # Lint with clippy
 clippy:
-    @cargo clippy
+    @cargo clippy --workspace
 
 # Run tests
 test:
-    @cargo test
+    @cargo test --workspace
 
-# Install to ~/.cargo/bin
+# Install both binaries to ~/.cargo/bin
 install:
-    @cargo install --path .
+    @cargo install --path crates/kb-mcp-server
+    @cargo install --path crates/kb-cli
+
+# Install MCP server only
+install-server:
+    @cargo install --path crates/kb-mcp-server
+
+# Install CLI only
+install-cli:
+    @cargo install --path crates/kb-cli
 
 # =============================================================================
 # Book
@@ -50,11 +59,15 @@ book-serve:
 
 # Run CLI (e.g., just run list-sections)
 run *args:
-    @cargo run -- {{args}}
+    @cargo run -p kb-cli -- {{args}}
+
+# Run MCP server
+run-server:
+    @cargo run -p kb-mcp-server
 
 # Search shorthand (e.g., just search "rate limits")
 search query:
-    @cargo run -- search --query "{{query}}"
+    @cargo run -p kb-cli -- search --query "{{query}}"
 
 # =============================================================================
 # Agent
@@ -86,11 +99,11 @@ agent-vault-status:
 
 # Line counts by language
 loc:
-    @tokei src/ tests/
+    @tokei crates/
 
 # Largest files by code lines
 loc-top:
-    @tokei src/ tests/ --files --sort code
+    @tokei crates/ --files --sort code
 
 # Full project stats (includes docs, config, vault)
 loc-all:

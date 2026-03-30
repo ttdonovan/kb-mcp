@@ -1,16 +1,10 @@
 //! Vault export — concatenate all documents into a single markdown file.
-//!
-//! Reads documents fresh from disk (not from the index) to ensure
-//! exported content is always current. Documents include their YAML
-//! frontmatter as metadata headers. The markdown assembly is delegated
-//! to `format::format_export` so MCP and CLI produce identical output.
 
 use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::CallToolResult;
 use schemars::JsonSchema;
 use serde::Deserialize;
 
-use crate::format;
 use crate::server::KbMcpServer;
 
 fn default_max_documents() -> usize {
@@ -56,7 +50,7 @@ impl KbMcpServer {
             })
             .count();
 
-        let docs_with_bodies: Vec<(&crate::types::Document, String)> = index
+        let docs_with_bodies: Vec<(&kb_core::types::Document, String)> = index
             .documents
             .iter()
             .filter(|doc| {
@@ -83,7 +77,7 @@ impl KbMcpServer {
         }
 
         let mut output =
-            format::format_export(&docs_with_bodies, params.collection.as_deref());
+            kb_core::format::format_export(&docs_with_bodies, params.collection.as_deref());
 
         if matching_count > params.max_documents {
             output.push_str(&format!(

@@ -2,23 +2,24 @@
 
 ## Overview
 
-kb-mcp is a single Rust binary that operates in two modes:
+kb-mcp is a Cargo workspace with three crates:
 
-- **MCP Server** (no args) — stdio JSON-RPC transport via rmcp
-- **CLI** (with args) — Clap subcommands, JSON to stdout
+- **`kb-core`** (library) — types, config, indexing, search, formatting. No transport deps.
+- **`kb-cli`** (binary `kb`) — Clap subcommands, JSON to stdout
+- **`kb-mcp-server`** (binary `kb-mcp`) — MCP stdio server via rmcp
 
-Both modes share the same config loading, indexing, search, and formatting
-code. The only difference is the transport layer.
+Both binaries share all logic through `kb-core`. The only difference is
+the transport layer.
 
 ```mermaid
 flowchart TD
-    M[main.rs] --> D{args?}
-    D -->|yes| CLI[cli.rs]
-    CLI --> FMT[format.rs]
-    FMT --> OUT[stdout — JSON]
-    D -->|no| SRV[server.rs]
-    SRV --> TOOLS[tools/*.rs]
-    TOOLS --> MCP[rmcp stdio — JSON-RPC]
+    CLI[kb-cli] --> CORE[kb-core]
+    SRV[kb-mcp-server] --> CORE
+    CORE --> FMT[format.rs — shared output]
+    CORE --> IDX[index.rs — scanning]
+    CORE --> SE[search.rs — BM25]
+    CLI --> OUT[stdout — JSON]
+    SRV --> MCP[rmcp stdio — JSON-RPC]
 ```
 
 ## Startup Sequence
@@ -49,27 +50,34 @@ flowchart TD
 ## Module Map
 
 ```
-src/
-├── main.rs          Entry point — mode detection, startup orchestration
-├── config.rs        RON config loading, path resolution, discovery chain
-├── types.rs         Core data types (Document, Section)
-├── index.rs         Filesystem scanning, frontmatter parsing, section building
-├── search.rs        Tantivy BM25 index — build, search, rebuild
-├── format.rs        JSON output structs and serialization helpers
-├── cli.rs           Clap parser and CLI command dispatch
-├── server.rs        KbMcpServer struct, ServerHandler impl, fresh-read helper
-└── tools/
-    ├── mod.rs       Router composition (sections + documents + search + ...)
-    ├── sections.rs  list_sections — collection/section inventory
-    ├── documents.rs get_document — full content retrieval (fresh from disk)
-    ├── search.rs    search — BM25 full-text with auto-reindex on stale collections
-    ├── context.rs   kb_context — frontmatter + summary (token-efficient)
-    ├── write.rs     kb_write — create files in writable collections
-    ├── reindex.rs   reindex — rebuild index from disk
-    ├── digest.rs    kb_digest — vault summary with topics, recency, gap hints
-    ├── query.rs     kb_query — frontmatter filtering (tag, status, date, sources)
-    ├── export.rs    kb_export — concatenate vault into single markdown document
-    └── health.rs    kb_health — vault health diagnostics (quality, orphans, broken links)
+crates/
+├── kb-core/src/
+│   ├── lib.rs       AppContext, init(), sync_stores()
+│   ├── config.rs    RON config loading, path resolution, discovery chain
+│   ├── types.rs     Core data types (Document, Section)
+│   ├── index.rs     Filesystem scanning, frontmatter parsing, section building
+│   ├── store.rs     .mv2 lifecycle, content hashing, incremental sync
+│   ├── search.rs    BM25 search engine (memvid-core)
+│   ├── format.rs    JSON output structs and serialization helpers
+│   ├── query.rs     Frontmatter filtering logic (shared between CLI and MCP)
+│   └── write.rs     slugify_title, find_available_path (shared utilities)
+├── kb-cli/src/
+│   └── main.rs      Clap parser and CLI command dispatch → kb_core::* calls
+└── kb-mcp-server/src/
+    ├── main.rs      MCP stdio server startup
+    ├── server.rs    KbMcpServer struct, auto-reindex, ServerHandler impl
+    └── tools/
+        ├── mod.rs       Router composition (sections + documents + search + ...)
+        ├── sections.rs  list_sections — collection/section inventory
+        ├── documents.rs get_document — full content retrieval (fresh from disk)
+        ├── search.rs    search — BM25 full-text with auto-reindex
+        ├── context.rs   kb_context — frontmatter + summary (token-efficient)
+        ├── write.rs     kb_write — create files in writable collections
+        ├── reindex.rs   reindex — rebuild index from disk
+        ├── digest.rs    kb_digest — vault summary with topics, recency, gap hints
+        ├── query.rs     kb_query — frontmatter filtering (tag, status, date, sources)
+        ├── export.rs    kb_export — concatenate vault into single markdown document
+        └── health.rs    kb_health — vault health diagnostics (quality, orphans, broken links)
 ```
 
 ## Data Model
@@ -199,7 +207,8 @@ Routers are composed in `tools/mod.rs` using the `+` operator:
 sections::router() + documents::router() + search::router() + ...
 ```
 
-Adding a tool = one new file + one line in `mod.rs` + one CLI subcommand.
+Adding a tool = one new file in `kb-mcp-server/src/tools/` + one line in
+`mod.rs` + one CLI subcommand in `kb-cli/src/main.rs`.
 
 ## State Management
 

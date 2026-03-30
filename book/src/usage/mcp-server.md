@@ -18,7 +18,8 @@ Add to your project's `.mcp.json`:
 }
 ```
 
-The binary must be in your `PATH` (install via `cargo install --path .`).
+The binary must be in your `PATH` (install via `just install-server` or
+`cargo install --path crates/kb-mcp-server`).
 
 ## Startup
 

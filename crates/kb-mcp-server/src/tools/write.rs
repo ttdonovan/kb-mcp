@@ -3,7 +3,6 @@ use rmcp::model::CallToolResult;
 use schemars::JsonSchema;
 use serde::Deserialize;
 
-use crate::format;
 use crate::server::KbMcpServer;
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -49,7 +48,6 @@ impl KbMcpServer {
         &self,
         Parameters(params): Parameters<WriteParams>,
     ) -> Result<CallToolResult, rmcp::ErrorData> {
-        // Find the collection
         let collection = self
             .collections
             .iter()
@@ -69,7 +67,6 @@ impl KbMcpServer {
             }
         };
 
-        // Check writable
         if !collection.writable {
             let writable: Vec<&str> = self
                 .collections
@@ -90,12 +87,9 @@ impl KbMcpServer {
             )]));
         }
 
-        // Resolve target directory, validating it doesn't escape the collection
         let target_dir = if let Some(ref dir) = params.directory {
             let resolved = collection.path.join(dir);
-            // Prevent path traversal (e.g. "../../etc")
             let canonical_base = collection.path.canonicalize().unwrap_or(collection.path.clone());
-            // Create the directory so canonicalize works on it
             if let Err(e) = std::fs::create_dir_all(&resolved) {
                 return Ok(CallToolResult::error(vec![rmcp::model::Content::text(
                     format!("Failed to create directory '{}': {}", dir, e),
@@ -115,29 +109,25 @@ impl KbMcpServer {
             collection.path.clone()
         };
 
-        // Generate filename: use explicit filename or date-prefixed slug
         let today = chrono::Local::now().format("%Y-%m-%d").to_string();
         let base_name = if let Some(ref name) = params.filename {
-            // Ensure it ends with .md
             if name.ends_with(".md") {
                 name.clone()
             } else {
                 format!("{}.md", name)
             }
         } else {
-            let slug = slugify_title(&params.title);
+            let slug = kb_core::write::slugify_title(&params.title);
             format!("{}-{}.md", today, slug)
         };
 
-        // Handle collisions
-        let file_path = find_available_path(&target_dir, &base_name);
+        let file_path = kb_core::write::find_available_path(&target_dir, &base_name);
         let rel_path = file_path
             .strip_prefix(&collection.path)
             .unwrap_or(&file_path)
             .to_string_lossy()
             .to_string();
 
-        // Generate frontmatter
         let mut frontmatter = String::new();
         frontmatter.push_str("---\n");
         if !params.tags.is_empty() {
@@ -158,15 +148,13 @@ impl KbMcpServer {
 
         let content = format!("{}# {}\n\n{}\n", frontmatter, params.title, params.body);
 
-        // Write file
         if let Err(e) = std::fs::write(&file_path, &content) {
             return Ok(CallToolResult::error(vec![rmcp::model::Content::text(
                 format!("Failed to write file: {}", e),
             )]));
         }
 
-        // Rebuild index and sync the collection's .mv2 to include new document
-        let new_index = crate::index::Index::build(&self.collections);
+        let new_index = kb_core::index::Index::build(&self.collections);
 
         let current_hashes = new_index
             .content_hashes
@@ -174,7 +162,7 @@ impl KbMcpServer {
             .cloned()
             .unwrap_or_default();
 
-        if let Ok((mem, _)) = crate::store::sync_collection(
+        if let Ok((mem, _)) = kb_core::store::sync_collection(
             &self.cache_dir,
             collection,
             &current_hashes,
@@ -190,41 +178,9 @@ impl KbMcpServer {
             *index = new_index;
         }
 
-        let json = format::format_write(&rel_path, &params.collection, &params.title, &params.tags);
+        let json = kb_core::format::format_write(&rel_path, &params.collection, &params.title, &params.tags);
         Ok(CallToolResult::success(vec![rmcp::model::Content::text(
             json,
         )]))
     }
-}
-
-/// Convert a title to a URL-safe kebab-case slug for filenames.
-pub fn slugify_title(title: &str) -> String {
-    title
-        .to_lowercase()
-        .chars()
-        .map(|c| if c.is_alphanumeric() { c } else { '-' })
-        .collect::<String>()
-        .split('-')
-        .filter(|s| !s.is_empty())
-        .collect::<Vec<_>>()
-        .join("-")
-}
-
-/// Find a non-conflicting filename by appending numeric suffixes (-2, -3, ...).
-/// Avoids silently overwriting existing notes when an agent retries a write.
-fn find_available_path(dir: &std::path::Path, base_name: &str) -> std::path::PathBuf {
-    let candidate = dir.join(base_name);
-    if !candidate.exists() {
-        return candidate;
-    }
-
-    let stem = base_name.trim_end_matches(".md");
-    for i in 2..100 {
-        let candidate = dir.join(format!("{}-{}.md", stem, i));
-        if !candidate.exists() {
-            return candidate;
-        }
-    }
-
-    dir.join(base_name)
 }

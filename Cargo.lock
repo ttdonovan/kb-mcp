@@ -1356,23 +1356,46 @@ dependencies = [
 ]
 
 [[package]]
-name = "kb-mcp"
-version = "0.2.0"
+name = "kb-cli"
+version = "0.3.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "clap",
+ "kb-core",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
+name = "kb-core"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "blake3",
  "chrono",
- "clap",
  "dirs",
  "memvid-core",
  "regex",
- "rmcp",
  "ron",
- "schemars",
  "serde",
  "serde_json",
  "serde_yaml",
  "sha2",
+ "tracing",
+]
+
+[[package]]
+name = "kb-mcp-server"
+version = "0.3.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "kb-core",
+ "rmcp",
+ "schemars",
+ "serde",
+ "serde_json",
  "tokio",
  "tracing",
  "tracing-subscriber",

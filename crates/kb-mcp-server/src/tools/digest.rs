@@ -1,16 +1,10 @@
 //! Vault summary tool — coverage, gaps, recent additions.
-//!
-//! Generates a structured overview from the in-memory `Index` without
-//! any new data structures. Topics come from document titles per section,
-//! recency from frontmatter `created` dates, and gap hints from section
-//! doc counts. Targets ~200-500 tokens for a full vault digest.
 
 use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::CallToolResult;
 use schemars::JsonSchema;
 use serde::Deserialize;
 
-use crate::format;
 use crate::server::KbMcpServer;
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -36,7 +30,7 @@ impl KbMcpServer {
     ) -> Result<CallToolResult, rmcp::ErrorData> {
         self.auto_reindex_stale_collections().await;
         let index = self.index.read().await;
-        let json = format::format_digest(
+        let json = kb_core::format::format_digest(
             &index.documents,
             &index.sections,
             params.collection.as_deref(),

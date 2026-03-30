@@ -14,16 +14,16 @@ RON files — no hardcoded paths or project-specific values.
 # Clone and build
 git clone https://github.com/ttdonovan/kb-mcp.git
 cd kb-mcp
-cargo install --path .
+just install  # installs both `kb` (CLI) and `kb-mcp` (MCP server)
 
 # Try it — the example config indexes this project's own vault and docs
 cp collections.example.ron collections.ron
 
 # Search the included AI agent memory vault
-kb-mcp list-sections
-kb-mcp search --query "cognitive memory"
-kb-mcp context --path "concepts/cognitive-memory-model.md"
-kb-mcp get-document --path "concepts/retrieval-strategies.md"
+kb list-sections
+kb search --query "cognitive memory"
+kb context --path "concepts/cognitive-memory-model.md"
+kb get-document --path "concepts/retrieval-strategies.md"
 ```
 
 To use with your own markdown collections, edit `collections.ron` to
@@ -32,11 +32,16 @@ point at your directories. See [Configuration](#configuration) below.
 ## Install
 
 ```sh
-# BM25 keyword search (default, lightweight)
-cargo install --path .
+# Install both binaries (CLI `kb` + MCP server `kb-mcp`)
+just install
 
-# BM25 + vector hybrid search (requires ONNX model, see below)
-cargo install --path . --features hybrid
+# Or install individually
+cargo install --path crates/kb-cli          # installs `kb`
+cargo install --path crates/kb-mcp-server   # installs `kb-mcp`
+
+# With hybrid search (BM25 + vector, requires ONNX model — see below)
+cargo install --path crates/kb-cli --features hybrid
+cargo install --path crates/kb-mcp-server --features hybrid
 ```
 
 ### Hybrid Search (optional)
@@ -143,16 +148,16 @@ For cross-project use, set `KB_MCP_CONFIG` to point to the config:
 
 ## CLI
 
-The same binary works as a CLI when given arguments:
+The `kb` binary provides CLI access to all tools:
 
 ```sh
-kb-mcp list-sections
-kb-mcp search --query "rate limits"
-kb-mcp search --query "bevy" --collection skills
-kb-mcp get-document --path "concepts/mcp-server-pattern.md"
-kb-mcp context --path "concepts/mcp-server-pattern.md"
-kb-mcp write --collection notes --title "My Note" --body "Content here"
-kb-mcp reindex
+kb list-sections
+kb search --query "rate limits"
+kb search --query "bevy" --collection skills
+kb get-document --path "concepts/mcp-server-pattern.md"
+kb context --path "concepts/mcp-server-pattern.md"
+kb write --collection notes --title "My Note" --body "Content here"
+kb reindex
 ```
 
 ## Documentation
@@ -201,11 +206,13 @@ setup and usage.
 
 ```sh
 just              # List available commands
-just build        # Build (debug)
-just release      # Build (release)
-just check        # cargo check
-just clippy       # Lint
-just test         # Run tests
+just build        # Build all crates (debug)
+just release      # Build all crates (release)
+just check        # cargo check --workspace
+just clippy       # Lint all crates
+just test         # Run all tests
+just run <args>   # Run CLI (e.g., just run list-sections)
+just run-server   # Run MCP server
 just book-build   # Build documentation
 just book-serve   # Serve docs with live reload
 ```

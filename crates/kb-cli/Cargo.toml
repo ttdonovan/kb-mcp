@@ -1,0 +1,23 @@
+[package]
+name = "kb-cli"
+version.workspace = true
+edition.workspace = true
+description = "CLI for markdown knowledge bases"
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "kb"
+path = "src/main.rs"
+
+[features]
+default = []
+hybrid = ["kb-core/hybrid"]
+
+[dependencies]
+kb-core = { path = "../kb-core" }
+anyhow = "1"
+chrono = "0.4"
+clap = { version = "4", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }

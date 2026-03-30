@@ -1,17 +1,11 @@
 //! Structured frontmatter queries — filter documents by tags, status, dates.
-//!
-//! Linear scan of `Index.documents` checking each document's frontmatter
-//! HashMap against the query params. Multiple filters combine with AND logic.
-//! Returns document metadata without body content.
 
 use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::CallToolResult;
 use schemars::JsonSchema;
 use serde::Deserialize;
 
-use crate::format;
 use crate::server::KbMcpServer;
-use crate::types::Document;
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct QueryParams {
@@ -46,7 +40,6 @@ impl KbMcpServer {
         &self,
         Parameters(params): Parameters<QueryParams>,
     ) -> Result<CallToolResult, rmcp::ErrorData> {
-        // Validate date format upfront so agents get a clear error
         if let Some(ref date_str) = params.created_after
             && chrono::NaiveDate::parse_from_str(date_str, "%Y-%m-%d").is_err()
         {
@@ -60,64 +53,23 @@ impl KbMcpServer {
 
         self.auto_reindex_stale_collections().await;
         let index = self.index.read().await;
-        let results: Vec<&Document> = index
+        let results: Vec<&kb_core::types::Document> = index
             .documents
             .iter()
-            .filter(|doc| matches_query(doc, &params))
+            .filter(|doc| {
+                kb_core::query::matches_query(
+                    doc,
+                    params.collection.as_deref(),
+                    params.tag.as_deref(),
+                    params.status.as_deref(),
+                    params.created_after.as_deref(),
+                    params.has_sources,
+                )
+            })
             .collect();
-        let json = format::format_query(&results);
+        let json = kb_core::format::format_query(&results);
         Ok(CallToolResult::success(vec![rmcp::model::Content::text(
             json,
         )]))
     }
-}
-
-/// Check if a document matches all query filters (AND logic).
-pub fn matches_query(doc: &Document, params: &QueryParams) -> bool {
-    if params.collection.as_ref().is_some_and(|c| doc.collection != *c) {
-        return false;
-    }
-
-    if let Some(ref tag) = params.tag {
-        let tag_lower = tag.to_lowercase();
-        if !doc.tags.iter().any(|t| t.to_lowercase() == tag_lower) {
-            return false;
-        }
-    }
-
-    if let Some(ref status) = params.status {
-        let has_status = doc
-            .frontmatter
-            .get("status")
-            .and_then(|v| match v {
-                serde_yaml::Value::String(s) => Some(s.as_str()),
-                _ => None,
-            })
-            .is_some_and(|s| s == status);
-        if !has_status {
-            return false;
-        }
-    }
-
-    if let Some(ref after) = params.created_after
-        && let Ok(after_date) = chrono::NaiveDate::parse_from_str(after, "%Y-%m-%d")
-    {
-        let created = doc
-            .frontmatter
-            .get("created")
-            .and_then(|v| {
-                let s = crate::format::yaml_value_to_string(v);
-                chrono::NaiveDate::parse_from_str(&s, "%Y-%m-%d").ok()
-            });
-        match created {
-            Some(d) if d >= after_date => {}
-            _ => return false,
-        }
-    }
-
-    if params.has_sources && !doc.frontmatter.contains_key("sources") {
-        return false;
-    }
-
-    true
 }

@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use rmcp::model::CallToolResult;
 
 use crate::server::KbMcpServer;
-use crate::store;
 
 pub(crate) fn router() -> rmcp::handler::server::router::tool::ToolRouter<KbMcpServer> {
     KbMcpServer::reindex_router()
@@ -16,11 +15,10 @@ impl KbMcpServer {
         description = "Rebuild the search index from all collections on disk. Use this after adding or editing documents mid-session."
     )]
     pub(crate) async fn reindex(&self) -> Result<CallToolResult, rmcp::ErrorData> {
-        let new_index = crate::index::Index::build(&self.collections);
+        let new_index = kb_core::index::Index::build(&self.collections);
         let doc_count = new_index.documents.len();
         let section_count = new_index.sections.len();
 
-        // Re-sync all .mv2 files against the filesystem
         let mut new_stores = HashMap::new();
         let mut total_changes = 0;
 
@@ -31,7 +29,7 @@ impl KbMcpServer {
                 .cloned()
                 .unwrap_or_default();
 
-            match store::sync_collection(
+            match kb_core::store::sync_collection(
                 &self.cache_dir,
                 collection,
                 &current_hashes,

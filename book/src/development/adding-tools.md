@@ -2,11 +2,12 @@
 
 ## Steps
 
-1. Create `src/tools/my_tool.rs`
-2. Add `pub(crate) mod my_tool;` to `src/tools/mod.rs`
+1. Create `crates/kb-mcp-server/src/tools/my_tool.rs`
+2. Add `pub(crate) mod my_tool;` to `crates/kb-mcp-server/src/tools/mod.rs`
 3. Add `+ my_tool::router()` to the `combined_router()` function
-4. Add a CLI subcommand in `src/cli.rs`
-5. Update server instructions in `src/server.rs`
+4. Add a CLI subcommand in `crates/kb-cli/src/main.rs`
+5. If shared logic is needed, add it to `crates/kb-core/src/`
+6. Update server instructions in `crates/kb-mcp-server/src/server.rs`
 
 ## Tool Template
 
@@ -38,7 +39,7 @@ impl KbMcpServer {
         &self,
         Parameters(params): Parameters<MyToolParams>,
     ) -> Result<CallToolResult, rmcp::ErrorData> {
-        // Implementation
+        // Call kb_core functions for shared logic
         Ok(CallToolResult::success(vec![
             rmcp::model::Content::text("result"),
         ]))
@@ -53,3 +54,4 @@ impl KbMcpServer {
 - Use `#[serde(default)]` for optional fields
 - Return `CallToolResult::error(...)` with actionable messages for user-facing errors
 - Every tool must have a corresponding CLI subcommand for testing parity
+- Shared logic (filtering, formatting, utilities) belongs in `kb-core`, not in tool files

@@ -1,30 +1,31 @@
-//! CLI interface — mirrors every MCP tool as a subcommand.
+//! kb — CLI for markdown knowledge bases.
 //!
-//! Exists so you can test tools, pipe output, and script searches without
-//! needing an MCP client. All output is JSON to stdout, errors to stderr.
+//! Mirrors every MCP tool as a subcommand so you can test tools, pipe output,
+//! and script searches without needing an MCP client. All output is JSON to
+//! stdout, errors to stderr.
 
 use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
 
-use crate::config::ResolvedCollection;
-use crate::format;
-use crate::index::Index;
-use crate::search::SearchEngine;
+use kb_core::config::ResolvedCollection;
+use kb_core::format;
+use kb_core::index::Index;
+use kb_core::search::SearchEngine;
 
 #[derive(Parser)]
-#[command(name = "kb-mcp", about = "Knowledge base MCP server and CLI")]
-pub struct Cli {
+#[command(name = "kb", about = "Knowledge base CLI")]
+struct Cli {
     #[command(subcommand)]
-    pub command: Command,
+    command: Command,
 
     /// Path to collections.ron config file
     #[arg(long, global = true)]
-    pub config: Option<PathBuf>,
+    config: Option<PathBuf>,
 }
 
 #[derive(Subcommand)]
-pub enum Command {
+enum Command {
     /// List all sections with doc counts
     ListSections,
     /// Get a document by path or title
@@ -130,13 +131,21 @@ pub enum Command {
     },
 }
 
-pub fn run(
-    cli: Cli,
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let cli = Cli::parse();
+    let ctx = kb_core::init(cli.config.as_deref()).await?;
+    run(cli.command, &ctx.index, &ctx.search_engine, &ctx.collections);
+    Ok(())
+}
+
+fn run(
+    command: Command,
     index: &Index,
     search_engine: &SearchEngine,
     collections: &[ResolvedCollection],
 ) {
-    match cli.command {
+    match command {
         Command::ListSections => {
             println!("{}", format::format_sections(&index.sections));
         }
@@ -212,7 +221,6 @@ pub fn run(
                 .map(|t| t.split(',').map(|s| s.trim().to_string()).collect())
                 .unwrap_or_default();
 
-            // Resolve target directory
             let target_dir = if let Some(ref dir) = directory {
                 let resolved = collection.path.join(dir);
                 let canonical_base = collection
@@ -225,10 +233,7 @@ pub fn run(
                 }
                 let canonical_resolved = resolved.canonicalize().unwrap_or(resolved);
                 if !canonical_resolved.starts_with(&canonical_base) {
-                    eprintln!(
-                        "Directory '{}' escapes the collection root",
-                        dir
-                    );
+                    eprintln!("Directory '{}' escapes the collection root", dir);
                     std::process::exit(1);
                 }
                 canonical_resolved
@@ -236,7 +241,6 @@ pub fn run(
                 collection.path.clone()
             };
 
-            // Generate filename: explicit or date-prefixed slug
             let today = chrono::Local::now().format("%Y-%m-%d").to_string();
             let base_name = if let Some(ref name) = filename {
                 if name.ends_with(".md") {
@@ -245,10 +249,10 @@ pub fn run(
                     format!("{}.md", name)
                 }
             } else {
-                let slug = crate::tools::write::slugify_title(&title);
+                let slug = kb_core::write::slugify_title(&title);
                 format!("{}-{}.md", today, slug)
             };
-            let file_path = find_available_path(&target_dir, &base_name);
+            let file_path = kb_core::write::find_available_path(&target_dir, &base_name);
 
             let mut frontmatter = String::new();
             frontmatter.push_str("---\n");
@@ -289,9 +293,6 @@ pub fn run(
             }
         }
         Command::Reindex => {
-            // CLI reindex: rebuild index + re-sync all .mv2 files.
-            // Note: if MCP server holds exclusive locks on .mv2 files,
-            // this will fail. Use the MCP reindex tool instead.
             let new_index = Index::build(collections);
             println!(
                 "Reindexed {} documents across {} sections",
@@ -325,17 +326,19 @@ pub fn run(
                 );
                 std::process::exit(1);
             }
-            let params = crate::tools::query::QueryParams {
-                tag,
-                status,
-                created_after,
-                collection,
-                has_sources,
-            };
-            let results: Vec<&crate::types::Document> = index
+            let results: Vec<&kb_core::types::Document> = index
                 .documents
                 .iter()
-                .filter(|doc| crate::tools::query::matches_query(doc, &params))
+                .filter(|doc| {
+                    kb_core::query::matches_query(
+                        doc,
+                        collection.as_deref(),
+                        tag.as_deref(),
+                        status.as_deref(),
+                        created_after.as_deref(),
+                        has_sources,
+                    )
+                })
                 .collect();
             println!("{}", format::format_query(&results));
         }
@@ -353,7 +356,7 @@ pub fn run(
                 })
                 .count();
 
-            let docs_with_bodies: Vec<(&crate::types::Document, String)> = index
+            let docs_with_bodies: Vec<(&kb_core::types::Document, String)> = index
                 .documents
                 .iter()
                 .filter(|doc| {
@@ -416,19 +419,4 @@ pub fn run(
             );
         }
     }
-}
-
-fn find_available_path(dir: &std::path::Path, base_name: &str) -> std::path::PathBuf {
-    let candidate = dir.join(base_name);
-    if !candidate.exists() {
-        return candidate;
-    }
-    let stem = base_name.trim_end_matches(".md");
-    for i in 2..100 {
-        let c = dir.join(format!("{}-{}.md", stem, i));
-        if !c.exists() {
-            return c;
-        }
-    }
-    dir.join(base_name)
 }

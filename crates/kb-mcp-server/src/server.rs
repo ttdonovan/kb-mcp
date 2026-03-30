@@ -12,9 +12,10 @@ use rmcp::ServerHandler;
 use rmcp::model::{Implementation, ServerCapabilities, ServerInfo};
 use tokio::sync::RwLock;
 
-use crate::config::ResolvedCollection;
-use crate::index::Index;
-use crate::search::SearchEngine;
+use kb_core::config::ResolvedCollection;
+use kb_core::index::Index;
+use kb_core::search::SearchEngine;
+
 use crate::tools;
 
 /// Minimum seconds between auto-reindex checks. Prevents redundant filesystem
@@ -75,7 +76,7 @@ impl KbMcpServer {
         let mut stale_collections = Vec::new();
 
         for collection in self.collections.iter() {
-            let hashes_file = crate::store::hashes_path(&self.cache_dir, collection);
+            let hashes_file = kb_core::store::hashes_path(&self.cache_dir, collection);
 
             let dir_mtime = collection
                 .path
@@ -101,8 +102,6 @@ impl KbMcpServer {
 
         tracing::info!("auto-reindex: stale collections: {:?}", stale_collections);
 
-        // Incrementally rebuild only stale collections instead of the full index.
-        // This avoids re-scanning fresh collections, which is the main cost.
         let mut index = self.index.write().await;
 
         for collection in self.collections.iter() {
@@ -118,7 +117,7 @@ impl KbMcpServer {
                 .cloned()
                 .unwrap_or_default();
 
-            match crate::store::sync_collection(
+            match kb_core::store::sync_collection(
                 &self.cache_dir,
                 collection,
                 &current_hashes,
@@ -147,12 +146,10 @@ impl KbMcpServer {
     }
 
     /// Read a document fresh from disk rather than returning indexed content.
-    /// This ensures `get_document` never serves stale content — edits are
-    /// visible immediately without calling `reindex` first.
-    pub(crate) fn read_fresh(&self, doc: &crate::types::Document) -> Option<String> {
+    pub(crate) fn read_fresh(&self, doc: &kb_core::types::Document) -> Option<String> {
         let coll = self.collections.iter().find(|c| c.name == doc.collection)?;
         let file_path = coll.path.join(&doc.path);
-        crate::format::read_document_body(&file_path)
+        kb_core::format::read_document_body(&file_path)
     }
 }
 
