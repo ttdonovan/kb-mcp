@@ -12,13 +12,14 @@ path = "src/main.rs"
 
 [features]
 default = []
-hybrid = ["kb-core/hybrid"]
+hybrid = ["kb-core/hybrid", "dep:memvid-core"]
 
 [dependencies]
 kb-core = { path = "../kb-core" }
 anyhow = "1"
 chrono = "0.4"
-rmcp = { version = "1.1", features = ["server", "transport-io", "schemars"] }
+memvid-core = { version = "2.0", default-features = false, features = ["lex", "vec"], optional = true }
+rmcp = { version = "~1.5", features = ["server", "transport-io", "schemars"] }
 schemars = "1.0"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
