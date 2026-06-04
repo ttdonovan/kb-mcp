@@ -136,7 +136,8 @@ fn parse_document_with_hash(
     let rel_path = file_path.strip_prefix(base).ok()?;
     let rel_str = rel_path.to_string_lossy().to_string();
 
-    // Section = first directory component
+    // Section = first directory component; files at the collection root get
+    // the ROOT_SECTION sentinel so they stay visible in section listings.
     let section = if rel_path.components().count() > 1 {
         rel_path
             .components()
@@ -144,7 +145,7 @@ fn parse_document_with_hash(
             .map(|c| c.as_os_str().to_string_lossy().to_string())
             .unwrap_or_default()
     } else {
-        String::new()
+        crate::types::ROOT_SECTION.to_string()
     };
 
     let (frontmatter, tags, body) = parse_frontmatter(&content);
@@ -214,14 +215,13 @@ fn build_sections(documents: &[Document], collections: &[ResolvedCollection]) ->
         }
     }
 
-    // Count docs per (collection, section)
+    // Count docs per (collection, section). Every document has a section —
+    // root-level files carry the ROOT_SECTION sentinel.
     let mut counts: HashMap<(String, String), usize> = HashMap::new();
     for doc in documents {
-        if !doc.section.is_empty() {
-            *counts
-                .entry((doc.collection.clone(), doc.section.clone()))
-                .or_default() += 1;
-        }
+        *counts
+            .entry((doc.collection.clone(), doc.section.clone()))
+            .or_default() += 1;
     }
 
     let mut sections: Vec<Section> = counts

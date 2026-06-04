@@ -88,6 +88,27 @@ pub fn hash_content(content: &[u8]) -> String {
     hash.to_hex().to_string()
 }
 
+/// Delete a collection's `.mv2` store and sidecar hashes so the next
+/// `sync_collection` rebuilds it from scratch.
+///
+/// This is the repair path for a store whose sidecar wrongly claims documents
+/// are up to date (e.g. after an interrupted ingest or a binary upgrade that
+/// changed indexing) — incremental sync trusts the sidecar and can never
+/// re-ingest such documents on its own. Explicit reindex calls this; the
+/// startup and auto-resync paths stay incremental.
+pub fn clear_collection_store(cache_dir: &Path, collection: &ResolvedCollection) -> Result<()> {
+    let mv2 = mv2_path(cache_dir, collection);
+    let hashes = hashes_path(cache_dir, collection);
+
+    for path in [&mv2, &hashes] {
+        if path.exists() {
+            std::fs::remove_file(path)
+                .with_context(|| format!("failed to remove: {}", path.display()))?;
+        }
+    }
+    Ok(())
+}
+
 /// Ensure the cache directory exists.
 pub fn ensure_cache_dir(cache_dir: &Path) -> Result<()> {
     if !cache_dir.exists() {

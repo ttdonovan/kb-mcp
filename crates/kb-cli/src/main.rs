@@ -135,7 +135,15 @@ enum Command {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
     let ctx = kb_core::init(cli.config.as_deref()).await?;
-    run(cli.command, &ctx.index, &ctx.search_engine, &ctx.collections);
+    run(
+        cli.command,
+        &ctx.index,
+        &ctx.search_engine,
+        &ctx.collections,
+        &ctx.cache_dir,
+        #[cfg(feature = "hybrid")]
+        &ctx.embedder,
+    );
     Ok(())
 }
 
@@ -144,6 +152,8 @@ fn run(
     index: &Index,
     search_engine: &SearchEngine,
     collections: &[ResolvedCollection],
+    cache_dir: &std::path::Path,
+    #[cfg(feature = "hybrid")] embedder: &memvid_core::LocalTextEmbedder,
 ) {
     match command {
         Command::ListSections => {
@@ -294,10 +304,45 @@ fn run(
         }
         Command::Reindex => {
             let new_index = Index::build(collections);
+
+            // Explicit reindex forces a full store rebuild — clearing each
+            // store and sidecar repairs state that incremental sync (which
+            // trusts the sidecar hashes) can never fix. Matches the MCP
+            // server's reindex tool.
+            let mut total_changes = 0;
+            for collection in collections {
+                if let Err(e) = kb_core::store::clear_collection_store(cache_dir, collection) {
+                    eprintln!("Failed to clear store for '{}': {}", collection.name, e);
+                    std::process::exit(1);
+                }
+
+                let current_hashes = new_index
+                    .content_hashes
+                    .get(&collection.name)
+                    .cloned()
+                    .unwrap_or_default();
+
+                match kb_core::store::sync_collection(
+                    cache_dir,
+                    collection,
+                    &current_hashes,
+                    &new_index.documents,
+                    #[cfg(feature = "hybrid")]
+                    embedder,
+                ) {
+                    Ok((_, changes)) => total_changes += changes,
+                    Err(e) => {
+                        eprintln!("Failed to sync collection '{}': {}", collection.name, e);
+                        std::process::exit(1);
+                    }
+                }
+            }
+
             println!(
-                "Reindexed {} documents across {} sections",
+                "Reindexed {} documents across {} sections ({} changes synced)",
                 new_index.documents.len(),
-                new_index.sections.len()
+                new_index.sections.len(),
+                total_changes
             );
         }
         Command::Digest { collection } => {

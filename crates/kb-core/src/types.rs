@@ -6,6 +6,13 @@
 
 use serde::Serialize;
 
+/// Section name assigned to documents that sit directly at a collection root
+/// (e.g. `languages/rust.md` with no subdirectory). A sentinel rather than the
+/// empty string so root documents flow through section grouping, digest
+/// matching, and scope filtering without special-casing — an empty section
+/// name would be skipped by grouping and unselectable as a search scope.
+pub const ROOT_SECTION: &str = "(root)";
+
 /// A parsed markdown document. Built during filesystem scanning and held
 /// in the `Index` for the lifetime of the process.
 #[derive(Debug, Clone, Serialize)]
@@ -17,7 +24,8 @@ pub struct Document {
     pub tags: Vec<String>,
     /// Markdown body with frontmatter stripped.
     pub body: String,
-    /// First directory component — used for section grouping and scope filtering.
+    /// First directory component, or [`ROOT_SECTION`] for files at the
+    /// collection root — used for section grouping and scope filtering.
     pub section: String,
     /// Which collection this document belongs to.
     pub collection: String,

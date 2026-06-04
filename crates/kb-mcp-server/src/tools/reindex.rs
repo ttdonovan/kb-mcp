@@ -12,7 +12,7 @@ pub(crate) fn router() -> rmcp::handler::server::router::tool::ToolRouter<KbMcpS
 impl KbMcpServer {
     #[rmcp::tool(
         name = "reindex",
-        description = "Rebuild the search index from all collections on disk. Use this after adding or editing documents mid-session."
+        description = "Fully rebuild the search index from all collections on disk, discarding cached state. Use this after adding or editing documents mid-session, or when search results seem stale or incomplete."
     )]
     pub(crate) async fn reindex(&self) -> Result<CallToolResult, rmcp::ErrorData> {
         let new_index = kb_core::index::Index::build(&self.collections);
@@ -28,6 +28,15 @@ impl KbMcpServer {
                 .get(&collection.name)
                 .cloned()
                 .unwrap_or_default();
+
+            // Explicit reindex forces a full rebuild — clearing the store and
+            // sidecar is the only way to repair state where the sidecar
+            // wrongly claims documents are already ingested.
+            if let Err(e) = kb_core::store::clear_collection_store(&self.cache_dir, collection) {
+                return Ok(CallToolResult::error(vec![rmcp::model::Content::text(
+                    format!("Failed to clear store for '{}': {}", collection.name, e),
+                )]));
+            }
 
             match kb_core::store::sync_collection(
                 &self.cache_dir,
