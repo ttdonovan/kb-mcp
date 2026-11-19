@@ -95,7 +95,7 @@ Create a `collections.ron` in your project root (or `~/.config/kb-mcp/collection
 )
 ```
 
-Collection paths resolve relative to the config file's location.
+Collection paths and `cache_dir` resolve relative to the config file's location. The `KB_MCP_CACHE_DIR` environment variable overrides `cache_dir`.
 
 ### Config resolution order
 
