@@ -58,10 +58,8 @@ impl Config {
     pub fn resolve(self, config_dir: &Path) -> ResolvedConfig {
         let cache_dir = self
             .cache_dir
-            .map(|s| {
-                let expanded = shellexpand(&s);
-                PathBuf::from(expanded)
-            })
+            // Relative to the config file, like collection paths, so it does not depend on the working directory.
+            .map(|s| config_dir.join(shellexpand(&s)))
             .unwrap_or_else(default_cache_dir);
 
         let collections = self
@@ -92,12 +90,20 @@ impl Config {
 /// 2. KB_MCP_CONFIG env var
 /// 3. ./collections.ron
 /// 4. ~/.config/kb-mcp/collections.ron
+///
+/// `KB_MCP_CACHE_DIR` overrides the file's `cache_dir`, so a launcher that cannot edit a shared
+/// config, such as a plugin, can still choose where the index goes.
 pub fn load_config(explicit_path: Option<&Path>) -> Result<ResolvedConfig> {
     let (config_path, config_dir) = find_config(explicit_path)?;
     let content = std::fs::read_to_string(&config_path)
         .with_context(|| format!("failed to read config: {}", config_path.display()))?;
-    let config: Config =
+    let mut config: Config =
         ron::from_str(&content).with_context(|| format!("failed to parse: {}", config_path.display()))?;
+    if let Ok(dir) = std::env::var("KB_MCP_CACHE_DIR")
+        && !dir.is_empty()
+    {
+        config.cache_dir = Some(dir);
+    }
     Ok(config.resolve(&config_dir))
 }
 
@@ -157,4 +163,34 @@ fn shellexpand(s: &str) -> String {
             return format!("{}{}", home.display(), &s[1..]);
         }
     s.to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn config(cache_dir: Option<&str>) -> Config {
+        Config {
+            cache_dir: cache_dir.map(str::to_string),
+            collections: vec![],
+        }
+    }
+
+    #[test]
+    fn relative_cache_dir_resolves_against_the_config_file() {
+        let resolved = config(Some("index")).resolve(Path::new("/srv/kb"));
+        assert_eq!(resolved.cache_dir, PathBuf::from("/srv/kb/index"));
+    }
+
+    #[test]
+    fn absolute_cache_dir_is_kept() {
+        let resolved = config(Some("/var/cache/kb")).resolve(Path::new("/srv/kb"));
+        assert_eq!(resolved.cache_dir, PathBuf::from("/var/cache/kb"));
+    }
+
+    #[test]
+    fn missing_cache_dir_uses_the_default() {
+        let resolved = config(None).resolve(Path::new("/srv/kb"));
+        assert_eq!(resolved.cache_dir, default_cache_dir());
+    }
 }

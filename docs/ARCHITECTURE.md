@@ -151,8 +151,8 @@ The config discovery chain runs in order, first match wins:
 4. ~/.config/kb-mcp/collections.ron   user default
 ```
 
-Collection paths in the RON file resolve relative to the config file's
-parent directory. This means the same binary works from any working
+Collection paths and `cache_dir` in the RON file resolve relative to the
+config file's parent directory; `$KB_MCP_CACHE_DIR` overrides `cache_dir`. This means the same binary works from any working
 directory as long as the config paths are correct relative to the config.
 
 ## Search Architecture
