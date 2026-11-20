@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [0.3.1](https://github.com/ttdonovan/kb-mcp/compare/v0.3.0...v0.3.1) - 2026-11-20
+
+### Fixed
+
+- report frontmatter that is not valid YAML in kb_health, and log it, instead of silently dropping its fields.
+- *(deps)* upgrade rmcp to 3.10, which clears RUSTSEC-2026-0462; Content is now ContentBlock and ServerInfo is ServerConfig.
+
+### Other
+
+- make kb-mcp-server pass the strict lints: tools release the index lock before building their reply, and kb_write's frontmatter is written without format! appends.
+- make kb-core pass the strict lints: no unwraps, indexing or unchecked arithmetic, a poisoned search lock recovers, and the search and health functions are split.
+- add the strict clippy lints at warn, with clippy.toml allowing panics in tests, and apply clippy's automatic fixes.
+- drive kb-mcp over stdio to check the handshake, the tool list and tool output survive an rmcp upgrade.
+- *(deps)* update crates within their semver ranges, rmcp to 1.8, holding back any published less than 7 days ago.
+- make kb-cli pass the strict lints: commands return their error to main, which exits with status 1, instead of calling process::exit, and kb-cli drops tokio.
+
 ## [0.3.0](https://github.com/ttdonovan/kb-mcp/releases/tag/v0.3.0) - 2026-11-20
 
 ### Added
