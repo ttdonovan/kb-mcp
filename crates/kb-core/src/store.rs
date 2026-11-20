@@ -3,6 +3,8 @@
 //! Each collection gets its own `.mv2` file at `<cache_dir>/<hash>-<name>.mv2`.
 //! The hash prefix (first 8 chars of SHA-256 of the absolute collection path)
 //! prevents collisions when two projects define collections with the same name.
+//! With `index_names: Name` the file is `<cache_dir>/<name>.mv2`, stable across
+//! moves; see [`IndexNames`].
 //!
 //! This module manages the lifecycle: open-or-create, bulk ingest, incremental
 //! sync, and search. The `Index` (Vec<Document>) continues to handle metadata
@@ -14,21 +16,22 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result};
 use sha2::{Digest, Sha256};
 
-use crate::config::ResolvedCollection;
+use crate::config::{IndexNames, ResolvedCollection};
 
 /// Derive the `.mv2` file path for a collection.
 ///
-/// Uses SHA-256 of the absolute collection path (first 8 hex chars) as a
-/// prefix to avoid collisions across projects with same-named collections.
+/// By default uses SHA-256 of the absolute collection path (first 8 hex chars)
+/// as a prefix to avoid collisions across projects with same-named collections.
 pub fn mv2_path(cache_dir: &Path, collection: &ResolvedCollection) -> PathBuf {
-    let hash = {
-        let mut hasher = Sha256::new();
-        hasher.update(collection.path.to_string_lossy().as_bytes());
-        let result = hasher.finalize();
-        hex_prefix(&result, 8)
-    };
-
-    cache_dir.join(format!("{}-{}.mv2", hash, collection.name))
+    match collection.index_names {
+        IndexNames::Path => {
+            let mut hasher = Sha256::new();
+            hasher.update(collection.path.to_string_lossy().as_bytes());
+            let hash = hex_prefix(&hasher.finalize(), 8);
+            cache_dir.join(format!("{}-{}.mv2", hash, collection.name))
+        }
+        IndexNames::Name => cache_dir.join(format!("{}.mv2", collection.name)),
+    }
 }
 
 /// Derive the sidecar `.hashes` file path (content hashes for incremental sync).
@@ -363,6 +366,36 @@ fn hex_prefix(bytes: &[u8], len: usize) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn collection(path: &str, index_names: IndexNames) -> ResolvedCollection {
+        ResolvedCollection {
+            name: "wiki".to_string(),
+            path: PathBuf::from(path),
+            description: String::new(),
+            writable: false,
+            sections: vec![],
+            index_names,
+        }
+    }
+
+    #[test]
+    fn path_names_differ_per_location() {
+        let cache = Path::new("/cache");
+        let v1 = mv2_path(cache, &collection("/plugins/1.0/wiki", IndexNames::Path));
+        let v2 = mv2_path(cache, &collection("/plugins/1.1/wiki", IndexNames::Path));
+        assert_ne!(v1, v2);
+        assert!(v1.file_name().unwrap().to_str().unwrap().ends_with("-wiki.mv2"));
+    }
+
+    #[test]
+    fn name_names_are_stable_across_moves() {
+        let cache = Path::new("/cache");
+        let v1 = collection("/plugins/1.0/wiki", IndexNames::Name);
+        let v2 = collection("/plugins/1.1/wiki", IndexNames::Name);
+        assert_eq!(mv2_path(cache, &v1), PathBuf::from("/cache/wiki.mv2"));
+        assert_eq!(mv2_path(cache, &v1), mv2_path(cache, &v2));
+        assert_eq!(hashes_path(cache, &v2), PathBuf::from("/cache/wiki.hashes"));
+    }
 
     #[test]
     fn test_document_uri() {

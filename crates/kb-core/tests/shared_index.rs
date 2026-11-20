@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
-use kb_core::config::ResolvedCollection;
+use kb_core::config::{IndexNames, ResolvedCollection};
 use kb_core::index::Index;
 use kb_core::search::SearchEngine;
 use kb_core::store;
@@ -37,6 +37,7 @@ fn fixture(test_name: &str, with_doc: bool) -> (PathBuf, PathBuf, ResolvedCollec
         description: "Notes".to_string(),
         writable: false,
         sections: vec![],
+        index_names: IndexNames::Path,
     };
     (root.clone(), root.join("cache"), collection)
 }
