@@ -17,12 +17,13 @@ use crate::types::{Document, Section};
 pub struct Index {
     pub documents: Vec<Document>,
     pub sections: Vec<Section>,
-    /// Per-collection content hashes: collection_name → (relative_path → blake3 hash).
+    /// Per-collection content hashes: `collection_name` → (`relative_path` → blake3 hash).
     /// Used by `store::sync_collection` to determine which docs changed.
     pub content_hashes: HashMap<String, store::HashIndex>,
 }
 
 impl Index {
+    #[must_use]
     pub fn build(collections: &[ResolvedCollection]) -> Self {
         let mut documents = Vec::new();
         let mut content_hashes: HashMap<String, store::HashIndex> = HashMap::new();
@@ -44,7 +45,7 @@ impl Index {
 
         let sections = build_sections(&documents, collections);
 
-        Index {
+        Self {
             documents,
             sections,
             content_hashes,
@@ -85,10 +86,12 @@ impl Index {
         self.sections = build_sections(&self.documents, all_collections);
     }
 
+    #[must_use]
     pub fn find_by_path(&self, path: &str) -> Option<&Document> {
         self.documents.iter().find(|d| d.path == path)
     }
 
+    #[must_use]
     pub fn find_by_title(&self, title: &str) -> Option<&Document> {
         let lower = title.to_lowercase();
         self.documents
@@ -159,16 +162,15 @@ fn parse_document_with_hash(
         );
     }
 
-    let title = body
-        .lines()
-        .find(|l| l.starts_with("# "))
-        .map(|l| l.trim_start_matches("# ").to_string())
-        .unwrap_or_else(|| {
+    let title = body.lines().find(|l| l.starts_with("# ")).map_or_else(
+        || {
             rel_path
                 .file_stem()
                 .map(|s| s.to_string_lossy().to_string())
                 .unwrap_or_default()
-        });
+        },
+        |l| l.trim_start_matches("# ").to_string(),
+    );
 
     let _ = section_defs; // used by build_sections, not here
 
@@ -195,7 +197,7 @@ type ParsedFrontmatter = (
     Option<String>,
 );
 
-/// Parse YAML frontmatter delimited by `---`. Returns all fields as a HashMap
+/// Parse YAML frontmatter delimited by `---`. Returns all fields as a `HashMap`
 /// (for `kb_context`), extracted tags (for search indexing), the body with
 /// frontmatter stripped, and the parse error if the block is not valid YAML.
 /// A malformed block yields no fields rather than failing the document, but
@@ -257,7 +259,7 @@ fn build_sections(documents: &[Document], collections: &[ResolvedCollection]) ->
         .map(|((collection, name), doc_count)| {
             let description = desc_map
                 .get(&(collection.as_str(), name.as_str()))
-                .map(|d| d.to_string())
+                .map(std::string::ToString::to_string)
                 .unwrap_or_default();
 
             Section {

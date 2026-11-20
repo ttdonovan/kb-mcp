@@ -7,11 +7,11 @@ use serde::Deserialize;
 
 use crate::server::KbMcpServer;
 
-fn default_stale_days() -> u32 {
+const fn default_stale_days() -> u32 {
     90
 }
 
-fn default_min_words() -> u32 {
+const fn default_min_words() -> u32 {
     50
 }
 
@@ -28,7 +28,7 @@ pub struct HealthParams {
     pub min_words: u32,
 }
 
-pub(crate) fn router() -> rmcp::handler::server::router::tool::ToolRouter<KbMcpServer> {
+pub fn router() -> rmcp::handler::server::router::tool::ToolRouter<KbMcpServer> {
     KbMcpServer::health_router()
 }
 

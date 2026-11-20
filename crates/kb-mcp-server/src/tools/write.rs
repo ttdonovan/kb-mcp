@@ -24,7 +24,7 @@ pub struct WriteParams {
     pub source: Option<String>,
     /// Optional subdirectory within the collection (e.g. "concepts/memory" or
     /// "research/papers"). Created automatically if it doesn't exist. Files
-    /// written here appear under the corresponding section in list_sections.
+    /// written here appear under the corresponding section in `list_sections`.
     #[serde(default)]
     pub directory: Option<String>,
     /// Optional filename (e.g. "cognitive-memory-model.md"). When omitted, a
@@ -34,7 +34,7 @@ pub struct WriteParams {
     pub filename: Option<String>,
 }
 
-pub(crate) fn router() -> rmcp::handler::server::router::tool::ToolRouter<KbMcpServer> {
+pub fn router() -> rmcp::handler::server::router::tool::ToolRouter<KbMcpServer> {
     KbMcpServer::write_router()
 }
 
@@ -53,19 +53,17 @@ impl KbMcpServer {
             .iter()
             .find(|c| c.name == params.collection);
 
-        let collection = match collection {
-            Some(c) => c,
-            None => {
-                let available: Vec<&str> =
-                    self.collections.iter().map(|c| c.name.as_str()).collect();
-                return Ok(CallToolResult::error(vec![
-                    rmcp::model::ContentBlock::text(format!(
-                        "Collection '{}' not found. Available: {}",
-                        params.collection,
-                        available.join(", ")
-                    )),
-                ]));
-            }
+        let collection = if let Some(c) = collection {
+            c
+        } else {
+            let available: Vec<&str> = self.collections.iter().map(|c| c.name.as_str()).collect();
+            return Ok(CallToolResult::error(vec![
+                rmcp::model::ContentBlock::text(format!(
+                    "Collection '{}' not found. Available: {}",
+                    params.collection,
+                    available.join(", ")
+                )),
+            ]));
         };
 
         if !collection.writable {
@@ -97,8 +95,7 @@ impl KbMcpServer {
             if let Err(e) = std::fs::create_dir_all(&resolved) {
                 return Ok(CallToolResult::error(vec![
                     rmcp::model::ContentBlock::text(format!(
-                        "Failed to create directory '{}': {}",
-                        dir, e
+                        "Failed to create directory '{dir}': {e}"
                     )),
                 ]));
             }
@@ -106,8 +103,7 @@ impl KbMcpServer {
             if !canonical_resolved.starts_with(&canonical_base) {
                 return Ok(CallToolResult::error(vec![
                     rmcp::model::ContentBlock::text(format!(
-                        "Directory '{}' escapes the collection root. Use a relative path within the collection.",
-                        dir
+                        "Directory '{dir}' escapes the collection root. Use a relative path within the collection."
                     )),
                 ]));
             }
@@ -121,11 +117,11 @@ impl KbMcpServer {
             if name.ends_with(".md") {
                 name.clone()
             } else {
-                format!("{}.md", name)
+                format!("{name}.md")
             }
         } else {
             let slug = kb_core::write::slugify_title(&params.title);
-            format!("{}-{}.md", today, slug)
+            format!("{today}-{slug}.md")
         };
 
         let file_path = kb_core::write::find_available_path(&target_dir, &base_name);
@@ -140,13 +136,13 @@ impl KbMcpServer {
         if !params.tags.is_empty() {
             frontmatter.push_str(&format!("tags: [{}]\n", params.tags.join(", ")));
         }
-        frontmatter.push_str(&format!("created: {}\n", today));
-        frontmatter.push_str(&format!("updated: {}\n", today));
+        frontmatter.push_str(&format!("created: {today}\n"));
+        frontmatter.push_str(&format!("updated: {today}\n"));
         if let Some(status) = &params.status {
-            frontmatter.push_str(&format!("status: {}\n", status));
+            frontmatter.push_str(&format!("status: {status}\n"));
         }
         if let Some(source) = &params.source {
-            frontmatter.push_str(&format!("source: {}\n", source));
+            frontmatter.push_str(&format!("source: {source}\n"));
         }
         frontmatter.push_str("---\n\n");
 
@@ -154,7 +150,7 @@ impl KbMcpServer {
 
         if let Err(e) = std::fs::write(&file_path, &content) {
             return Ok(CallToolResult::error(vec![
-                rmcp::model::ContentBlock::text(format!("Failed to write file: {}", e)),
+                rmcp::model::ContentBlock::text(format!("Failed to write file: {e}")),
             ]));
         }
 

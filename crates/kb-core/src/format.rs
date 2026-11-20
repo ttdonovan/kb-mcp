@@ -99,6 +99,7 @@ pub struct WriteOutput {
     pub tags: Vec<String>,
 }
 
+#[must_use]
 pub fn format_sections(sections: &[Section]) -> String {
     let output: Vec<SectionOutput> = sections
         .iter()
@@ -113,6 +114,7 @@ pub fn format_sections(sections: &[Section]) -> String {
     serde_json::to_string_pretty(&output).unwrap_or_default()
 }
 
+#[must_use]
 pub fn format_document(doc: &Document, include_content: bool) -> String {
     let output = DocumentOutput {
         path: doc.path.clone(),
@@ -130,6 +132,7 @@ pub fn format_document(doc: &Document, include_content: bool) -> String {
     serde_json::to_string_pretty(&output).unwrap_or_default()
 }
 
+#[must_use]
 pub fn format_context(doc: &Document) -> String {
     let summary = extract_summary(&doc.body);
     let output = ContextOutput {
@@ -145,6 +148,7 @@ pub fn format_context(doc: &Document) -> String {
     serde_json::to_string_pretty(&output).unwrap_or_default()
 }
 
+#[must_use]
 pub fn format_search(query: &str, results: &[SearchResult], documents: &[Document]) -> String {
     let result_outputs: Vec<SearchResultOutput> = results
         .iter()
@@ -170,6 +174,7 @@ pub fn format_search(query: &str, results: &[SearchResult], documents: &[Documen
     serde_json::to_string_pretty(&output).unwrap_or_default()
 }
 
+#[must_use]
 pub fn format_write(path: &str, collection: &str, title: &str, tags: &[String]) -> String {
     let output = WriteOutput {
         path: path.to_string(),
@@ -182,9 +187,11 @@ pub fn format_write(path: &str, collection: &str, title: &str, tags: &[String]) 
 }
 
 /// Extract the first paragraph after the H1 heading as a summary.
+///
 /// Falls back to the first non-empty paragraph if no H1 is found.
 /// This powers `kb_context` — agents get a meaningful preview without
 /// reading the full document, saving 90%+ tokens on scan-heavy workflows.
+#[must_use]
 pub fn extract_summary(body: &str) -> String {
     let mut lines = body.lines().peekable();
     let mut found_heading = false;
@@ -226,8 +233,9 @@ fn collect_paragraph(lines: &mut std::iter::Peekable<std::str::Lines>) -> String
     paragraph.join("\n")
 }
 
-/// Convert a serde_yaml::Value to a display string. serde_yaml::Value doesn't
-/// implement Display, so we serialize via serde_json for non-string variants.
+/// Convert a `serde_yaml::Value` to a display string. `serde_yaml::Value` doesn't
+/// implement Display, so we serialize via `serde_json` for non-string variants.
+#[must_use]
 pub fn yaml_value_to_string(v: &serde_yaml::Value) -> String {
     match v {
         serde_yaml::Value::String(s) => s.clone(),
@@ -248,6 +256,7 @@ pub fn yaml_value_to_string(v: &serde_yaml::Value) -> String {
 
 /// Build a vault digest — structured overview of collections, sections, topics,
 /// and recent additions. The 7-day recency window uses frontmatter `created` dates.
+#[must_use]
 pub fn format_digest(
     documents: &[Document],
     sections: &[Section],
@@ -275,7 +284,7 @@ pub fn format_digest(
     }
 
     let mut collection_names: Vec<&str> = coll_docs.keys().copied().collect();
-    collection_names.sort();
+    collection_names.sort_unstable();
 
     let mut total_documents = 0;
     let mut total_sections = 0;
@@ -362,6 +371,7 @@ pub struct QueryDocumentOutput {
 }
 
 /// Format query results — document metadata without body content.
+#[must_use]
 pub fn format_query(docs: &[&Document]) -> String {
     let documents: Vec<QueryDocumentOutput> = docs
         .iter()
@@ -386,6 +396,7 @@ pub fn format_query(docs: &[&Document]) -> String {
 ///
 /// Shared implementation for both MCP and CLI fresh-from-disk reads.
 /// Callers resolve the full filesystem path; this handles frontmatter stripping.
+#[must_use]
 pub fn read_document_body(file_path: &std::path::Path) -> Option<String> {
     let content = std::fs::read_to_string(file_path).ok()?;
     if let Some(after) = content.strip_prefix("---")
@@ -402,6 +413,7 @@ pub fn read_document_body(file_path: &std::path::Path) -> Option<String> {
 /// Takes a list of (document, body) pairs where bodies are pre-read from disk.
 /// Both the MCP tool and CLI command delegate to this function to avoid
 /// duplicating the markdown assembly logic.
+#[must_use]
 pub fn format_export(
     docs_with_bodies: &[(&Document, String)],
     collection_filter: Option<&str>,
@@ -411,8 +423,8 @@ pub fn format_export(
     let mut output = String::new();
 
     let header = match collection_filter {
-        Some(c) => format!("# Vault Export: {} ({})\n\n", c, today),
-        None => format!("# Vault Export ({})\n\n", today),
+        Some(c) => format!("# Vault Export: {c} ({today})\n\n"),
+        None => format!("# Vault Export ({today})\n\n"),
     };
     output.push_str(&header);
 
@@ -421,7 +433,7 @@ pub fn format_export(
         output.push_str(&format!("## {}\n", doc.path));
         for (key, value) in &doc.frontmatter {
             let val_str = yaml_value_to_string(value);
-            output.push_str(&format!("{}: {}\n", key, val_str));
+            output.push_str(&format!("{key}: {val_str}\n"));
         }
         output.push_str("---\n\n");
         output.push_str(body);
@@ -502,7 +514,7 @@ pub fn format_health(
     min_words: u32,
 ) -> String {
     let today = chrono::Local::now().date_naive();
-    let stale_cutoff = today - chrono::Duration::days(stale_days as i64);
+    let stale_cutoff = today - chrono::Duration::days(i64::from(stale_days));
 
     // Filter documents by collection
     let docs: Vec<&Document> = documents
@@ -565,7 +577,7 @@ pub fn format_health(
     }
 
     let mut coll_names: Vec<&str> = coll_docs.keys().copied().collect();
-    coll_names.sort();
+    coll_names.sort_unstable();
 
     let mut total_checked = 0;
     let mut total_issues = 0;

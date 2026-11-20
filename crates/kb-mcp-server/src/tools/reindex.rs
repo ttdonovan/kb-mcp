@@ -4,7 +4,7 @@ use rmcp::model::CallToolResult;
 
 use crate::server::KbMcpServer;
 
-pub(crate) fn router() -> rmcp::handler::server::router::tool::ToolRouter<KbMcpServer> {
+pub fn router() -> rmcp::handler::server::router::tool::ToolRouter<KbMcpServer> {
     KbMcpServer::reindex_router()
 }
 
@@ -72,8 +72,7 @@ impl KbMcpServer {
         }
 
         let msg = format!(
-            "Reindexed {} documents across {} sections ({} changes synced)",
-            doc_count, section_count, total_changes
+            "Reindexed {doc_count} documents across {section_count} sections ({total_changes} changes synced)"
         );
         Ok(CallToolResult::success(vec![
             rmcp::model::ContentBlock::text(msg),

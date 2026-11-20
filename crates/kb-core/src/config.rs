@@ -77,9 +77,7 @@ impl Config {
     pub fn resolve(self, config_dir: &Path) -> ResolvedConfig {
         let cache_dir = self
             .cache_dir
-            // Relative to the config file, like collection paths, so it does not depend on the working directory.
-            .map(|s| config_dir.join(shellexpand(&s)))
-            .unwrap_or_else(default_cache_dir);
+            .map_or_else(default_cache_dir, |s| config_dir.join(shellexpand(&s)));
 
         let index_names = self.index_names;
         let collections = self
@@ -108,7 +106,7 @@ impl Config {
 
 /// Load config using resolution chain:
 /// 1. --config CLI flag
-/// 2. KB_MCP_CONFIG env var
+/// 2. `KB_MCP_CONFIG` env var
 /// 3. ./collections.ron
 /// 4. ~/.config/kb-mcp/collections.ron
 ///

@@ -52,8 +52,9 @@ impl memvid_core::VecEmbedder for EmbedderAdapter<'_> {
 }
 
 impl SearchEngine {
-    /// Create from a map of collection_name → Memvid handle.
-    pub fn new(
+    /// Create from a map of `collection_name` → Memvid handle.
+    #[must_use]
+    pub const fn new(
         stores: HashMap<String, Memvid>,
         #[cfg(feature = "hybrid")] embedder: std::sync::Arc<memvid_core::LocalTextEmbedder>,
     ) -> Self {
@@ -64,7 +65,7 @@ impl SearchEngine {
         }
     }
 
-    /// Replace the Memvid handle for a single collection (after kb_write or reindex).
+    /// Replace the Memvid handle for a single collection (after `kb_write` or reindex).
     pub fn replace_store(&self, collection_name: &str, mem: Memvid) {
         let mut stores = self.stores.lock().unwrap();
         stores.insert(collection_name.to_string(), mem);
@@ -229,15 +230,15 @@ impl SearchEngine {
             }
 
             // Prefer memvid's snippet (relevant chunk), fall back to first paragraph
-            let excerpt = if !snippet.is_empty() {
-                snippet
-            } else {
+            let excerpt = if snippet.is_empty() {
                 crate::format::extract_summary(&doc.body)
+            } else {
+                snippet
             };
 
             results.push(SearchResult {
                 doc_index,
-                score: score as f64,
+                score: f64::from(score),
                 excerpt,
             });
 

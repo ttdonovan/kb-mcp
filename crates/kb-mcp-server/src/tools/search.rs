@@ -20,11 +20,11 @@ pub struct SearchParams {
     pub max_results: usize,
 }
 
-fn default_max_results() -> usize {
+const fn default_max_results() -> usize {
     10
 }
 
-pub(crate) fn router() -> rmcp::handler::server::router::tool::ToolRouter<KbMcpServer> {
+pub fn router() -> rmcp::handler::server::router::tool::ToolRouter<KbMcpServer> {
     KbMcpServer::search_router()
 }
 

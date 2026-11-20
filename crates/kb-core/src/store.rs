@@ -22,6 +22,7 @@ use crate::config::{IndexNames, ResolvedCollection};
 ///
 /// By default uses SHA-256 of the absolute collection path (first 8 hex chars)
 /// as a prefix to avoid collisions across projects with same-named collections.
+#[must_use]
 pub fn mv2_path(cache_dir: &Path, collection: &ResolvedCollection) -> PathBuf {
     match collection.index_names {
         IndexNames::Path => {
@@ -35,6 +36,7 @@ pub fn mv2_path(cache_dir: &Path, collection: &ResolvedCollection) -> PathBuf {
 }
 
 /// Derive the sidecar `.hashes` file path (content hashes for incremental sync).
+#[must_use]
 pub fn hashes_path(cache_dir: &Path, collection: &ResolvedCollection) -> PathBuf {
     let mv2 = mv2_path(cache_dir, collection);
     mv2.with_extension("hashes")
@@ -44,20 +46,23 @@ pub fn hashes_path(cache_dir: &Path, collection: &ResolvedCollection) -> PathBuf
 ///
 /// URI scheme: `<collection>://<relative-path>` — ensures uniqueness across
 /// collections and is parseable back to collection name + filesystem path.
+#[must_use]
 pub fn document_uri(collection_name: &str, relative_path: &str) -> String {
-    format!("{}://{}", collection_name, relative_path)
+    format!("{collection_name}://{relative_path}")
 }
 
-/// Parse a document URI back into (collection_name, relative_path).
+/// Parse a document URI back into (`collection_name`, `relative_path`).
+#[must_use]
 pub fn parse_uri(uri: &str) -> Option<(&str, &str)> {
     uri.split_once("://")
 }
 
-/// Content hash map: relative_path → blake3 hex hash.
+/// Content hash map: `relative_path` → blake3 hex hash.
 /// Serialized as a simple newline-delimited format: `<hash> <path>`.
 pub type HashIndex = HashMap<String, String>;
 
 /// Load content hashes from the sidecar file.
+#[must_use]
 pub fn load_hashes(path: &Path) -> HashIndex {
     let content = match std::fs::read_to_string(path) {
         Ok(c) => c,
@@ -80,7 +85,7 @@ pub fn load_hashes(path: &Path) -> HashIndex {
 pub fn save_hashes(path: &Path, hashes: &HashIndex) -> Result<()> {
     let mut lines: Vec<String> = hashes
         .iter()
-        .map(|(path, hash)| format!("{} {}", hash, path))
+        .map(|(path, hash)| format!("{hash} {path}"))
         .collect();
     lines.sort();
 
@@ -95,6 +100,7 @@ pub fn save_hashes(path: &Path, hashes: &HashIndex) -> Result<()> {
 }
 
 /// Compute blake3 hash of file content.
+#[must_use]
 pub fn hash_content(content: &[u8]) -> String {
     let hash = blake3::hash(content);
     hash.to_hex().to_string()
@@ -142,6 +148,7 @@ pub struct SyncDiff {
 
 /// Compare current filesystem hashes against the stored sidecar to determine
 /// which documents need to be added/removed from the .mv2 index.
+#[must_use]
 pub fn compute_diff(current: &HashIndex, stored: &HashIndex) -> SyncDiff {
     let mut to_add = Vec::new();
     let mut to_remove = Vec::new();
@@ -356,7 +363,7 @@ fn hex_prefix(bytes: &[u8], len: usize) -> String {
     bytes
         .iter()
         .take(len.div_ceil(2))
-        .map(|b| format!("{:02x}", b))
+        .map(|b| format!("{b:02x}"))
         .collect::<String>()
         .chars()
         .take(len)

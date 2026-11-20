@@ -164,12 +164,11 @@ fn run(
                 .find_by_path(&path)
                 .or_else(|| index.find_by_title(&path));
 
-            match doc {
-                Some(doc) => println!("{}", format::format_document(doc, true)),
-                None => {
-                    eprintln!("Document not found: {}", path);
-                    std::process::exit(1);
-                }
+            if let Some(doc) = doc {
+                println!("{}", format::format_document(doc, true))
+            } else {
+                eprintln!("Document not found: {path}");
+                std::process::exit(1);
             }
         }
         Command::Search {
@@ -195,12 +194,11 @@ fn run(
                 .find_by_path(&path)
                 .or_else(|| index.find_by_title(&path));
 
-            match doc {
-                Some(doc) => println!("{}", format::format_context(doc)),
-                None => {
-                    eprintln!("Document not found: {}", path);
-                    std::process::exit(1);
-                }
+            if let Some(doc) = doc {
+                println!("{}", format::format_context(doc))
+            } else {
+                eprintln!("Document not found: {path}");
+                std::process::exit(1);
             }
         }
         Command::Write {
@@ -214,16 +212,15 @@ fn run(
             filename,
         } => {
             let collection = collections.iter().find(|c| c.name == coll_name);
-            let collection = match collection {
-                Some(c) => c,
-                None => {
-                    eprintln!("Collection '{}' not found", coll_name);
-                    std::process::exit(1);
-                }
+            let collection = if let Some(c) = collection {
+                c
+            } else {
+                eprintln!("Collection '{coll_name}' not found");
+                std::process::exit(1);
             };
 
             if !collection.writable {
-                eprintln!("Collection '{}' is read-only", coll_name);
+                eprintln!("Collection '{coll_name}' is read-only");
                 std::process::exit(1);
             }
 
@@ -238,12 +235,12 @@ fn run(
                     .canonicalize()
                     .unwrap_or(collection.path.clone());
                 if let Err(e) = std::fs::create_dir_all(&resolved) {
-                    eprintln!("Failed to create directory '{}': {}", dir, e);
+                    eprintln!("Failed to create directory '{dir}': {e}");
                     std::process::exit(1);
                 }
                 let canonical_resolved = resolved.canonicalize().unwrap_or(resolved);
                 if !canonical_resolved.starts_with(&canonical_base) {
-                    eprintln!("Directory '{}' escapes the collection root", dir);
+                    eprintln!("Directory '{dir}' escapes the collection root");
                     std::process::exit(1);
                 }
                 canonical_resolved
@@ -256,11 +253,11 @@ fn run(
                 if name.ends_with(".md") {
                     name.clone()
                 } else {
-                    format!("{}.md", name)
+                    format!("{name}.md")
                 }
             } else {
                 let slug = kb_core::write::slugify_title(&title);
-                format!("{}-{}.md", today, slug)
+                format!("{today}-{slug}.md")
             };
             let file_path = kb_core::write::find_available_path(&target_dir, &base_name);
 
@@ -269,20 +266,20 @@ fn run(
             if !tags.is_empty() {
                 frontmatter.push_str(&format!("tags: [{}]\n", tags.join(", ")));
             }
-            frontmatter.push_str(&format!("created: {}\n", today));
-            frontmatter.push_str(&format!("updated: {}\n", today));
+            frontmatter.push_str(&format!("created: {today}\n"));
+            frontmatter.push_str(&format!("updated: {today}\n"));
             if let Some(s) = &status {
-                frontmatter.push_str(&format!("status: {}\n", s));
+                frontmatter.push_str(&format!("status: {s}\n"));
             }
             if let Some(s) = &source {
-                frontmatter.push_str(&format!("source: {}\n", s));
+                frontmatter.push_str(&format!("source: {s}\n"));
             }
             frontmatter.push_str("---\n\n");
 
-            let content = format!("{}# {}\n\n{}\n", frontmatter, title, body);
+            let content = format!("{frontmatter}# {title}\n\n{body}\n");
 
             match std::fs::write(&file_path, &content) {
-                Ok(_) => {
+                Ok(()) => {
                     let rel = file_path
                         .strip_prefix(&collection.path)
                         .unwrap_or(&file_path);
@@ -292,7 +289,7 @@ fn run(
                     );
                 }
                 Err(e) => {
-                    eprintln!("Failed to write: {}", e);
+                    eprintln!("Failed to write: {e}");
                     std::process::exit(1);
                 }
             }
@@ -356,10 +353,7 @@ fn run(
             if let Some(ref date_str) = created_after
                 && chrono::NaiveDate::parse_from_str(date_str, "%Y-%m-%d").is_err()
             {
-                eprintln!(
-                    "Invalid created_after date '{}', expected YYYY-MM-DD format",
-                    date_str
-                );
+                eprintln!("Invalid created_after date '{date_str}', expected YYYY-MM-DD format");
                 std::process::exit(1);
             }
             let results: Vec<&kb_core::types::Document> = index
@@ -406,7 +400,7 @@ fn run(
                     "No documents found{}",
                     collection
                         .as_ref()
-                        .map(|c| format!(" in collection '{}'", c))
+                        .map(|c| format!(" in collection '{c}'"))
                         .unwrap_or_default()
                 );
                 std::process::exit(1);
@@ -422,7 +416,7 @@ fn run(
                 ));
             }
 
-            print!("{}", output);
+            print!("{output}");
         }
         Command::Health {
             collection,
@@ -432,7 +426,7 @@ fn run(
             if let Some(ref coll) = collection
                 && !collections.iter().any(|c| c.name == *coll)
             {
-                eprintln!("Collection '{}' not found", coll);
+                eprintln!("Collection '{coll}' not found");
                 std::process::exit(1);
             }
             println!(

@@ -7,7 +7,7 @@ use serde::Deserialize;
 
 use crate::server::KbMcpServer;
 
-fn default_max_documents() -> usize {
+const fn default_max_documents() -> usize {
     200
 }
 
@@ -22,7 +22,7 @@ pub struct ExportParams {
     pub max_documents: usize,
 }
 
-pub(crate) fn router() -> rmcp::handler::server::router::tool::ToolRouter<KbMcpServer> {
+pub fn router() -> rmcp::handler::server::router::tool::ToolRouter<KbMcpServer> {
     KbMcpServer::export_router()
 }
 
@@ -68,7 +68,7 @@ impl KbMcpServer {
 
         if docs_with_bodies.is_empty() {
             let msg = match &params.collection {
-                Some(c) => format!("No documents found in collection '{}'", c),
+                Some(c) => format!("No documents found in collection '{c}'"),
                 None => "No documents found".to_string(),
             };
             return Ok(CallToolResult::error(vec![

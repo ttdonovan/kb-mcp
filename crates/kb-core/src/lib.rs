@@ -77,7 +77,7 @@ pub async fn init(config_path: Option<&Path>) -> Result<AppContext> {
 }
 
 /// Sync .mv2 files for all collections against the filesystem.
-/// Returns a map of collection_name -> Memvid handle for the search engine.
+/// Returns a map of `collection_name` -> Memvid handle for the search engine.
 pub fn sync_stores(
     cache_dir: &Path,
     index: &Index,

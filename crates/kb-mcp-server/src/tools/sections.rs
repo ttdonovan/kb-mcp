@@ -2,7 +2,7 @@ use rmcp::model::CallToolResult;
 
 use crate::server::KbMcpServer;
 
-pub(crate) fn router() -> rmcp::handler::server::router::tool::ToolRouter<KbMcpServer> {
+pub fn router() -> rmcp::handler::server::router::tool::ToolRouter<KbMcpServer> {
     KbMcpServer::sections_router()
 }
 

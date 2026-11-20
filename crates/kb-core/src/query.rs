@@ -10,7 +10,8 @@ use crate::types::Document;
 ///
 /// Both the CLI and MCP tool call this function with loose arguments
 /// rather than a shared params struct — each transport defines its own
-/// params type (clap args vs JsonSchema struct).
+/// params type (clap args vs `JsonSchema` struct).
+#[must_use]
 pub fn matches_query(
     doc: &Document,
     collection: Option<&str>,
