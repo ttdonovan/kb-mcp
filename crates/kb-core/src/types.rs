@@ -34,6 +34,11 @@ pub struct Document {
     /// (status, source, created date) without reading the full body.
     #[serde(skip_serializing_if = "std::collections::HashMap::is_empty")]
     pub frontmatter: std::collections::HashMap<String, serde_yaml::Value>,
+    /// Why a `---` frontmatter block failed to parse, if it did. The document
+    /// is still indexed without its fields; `kb_health` reports it so a broken
+    /// block is not mistaken for missing fields.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub frontmatter_error: Option<String>,
 }
 
 /// Derived from document counts + RON section definitions.

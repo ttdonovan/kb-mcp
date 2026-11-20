@@ -165,7 +165,7 @@ impl ServerHandler for KbMcpServer {
                  reindex to refresh after adding new files, kb_digest for vault summary \
                  and coverage overview, kb_query to filter by tags/status/dates, \
                  kb_export to export vault as a single markdown document, \
-                 and kb_health for document quality diagnostics (missing frontmatter, \
+                 and kb_health for document quality diagnostics (malformed or missing frontmatter, \
                  stale content, stubs, orphans, broken wiki-links)."
                     .to_string(),
             )

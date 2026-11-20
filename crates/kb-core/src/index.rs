@@ -149,7 +149,15 @@ fn parse_document_with_hash(
         crate::types::ROOT_SECTION.to_string()
     };
 
-    let (frontmatter, tags, body) = parse_frontmatter(&content);
+    let (frontmatter, tags, body, frontmatter_error) = parse_frontmatter(&content);
+    if let Some(e) = &frontmatter_error {
+        tracing::warn!(
+            "{}/{}: frontmatter is not valid YAML, indexed without it: {}",
+            collection_name,
+            rel_str,
+            e
+        );
+    }
 
     let title = body
         .lines()
@@ -173,17 +181,28 @@ fn parse_document_with_hash(
             section,
             collection: collection_name.to_string(),
             frontmatter,
+            frontmatter_error,
         },
         content_hash,
     ))
 }
 
+/// Frontmatter fields, tags, body, and the YAML error if the block did not parse.
+type ParsedFrontmatter = (
+    HashMap<String, serde_yaml::Value>,
+    Vec<String>,
+    String,
+    Option<String>,
+);
+
 /// Parse YAML frontmatter delimited by `---`. Returns all fields as a HashMap
-/// (for `kb_context`), extracted tags (for search indexing), and the body with
-/// frontmatter stripped. Gracefully handles missing or malformed frontmatter.
-fn parse_frontmatter(content: &str) -> (HashMap<String, serde_yaml::Value>, Vec<String>, String) {
+/// (for `kb_context`), extracted tags (for search indexing), the body with
+/// frontmatter stripped, and the parse error if the block is not valid YAML.
+/// A malformed block yields no fields rather than failing the document, but
+/// its error is kept so `kb_health` can report it instead of hiding it.
+fn parse_frontmatter(content: &str) -> ParsedFrontmatter {
     if !content.starts_with("---") {
-        return (HashMap::new(), vec![], content.to_string());
+        return (HashMap::new(), vec![], content.to_string(), None);
     }
 
     let after_first = &content[3..];
@@ -191,17 +210,25 @@ fn parse_frontmatter(content: &str) -> (HashMap<String, serde_yaml::Value>, Vec<
         let yaml_str = &after_first[..end];
         let body = &after_first[end + 4..];
 
-        let fm: HashMap<String, serde_yaml::Value> =
-            serde_yaml::from_str(yaml_str).unwrap_or_default();
+        // An empty block is valid; serde_yaml would reject it as a map.
+        let (fm, error): (HashMap<String, serde_yaml::Value>, Option<String>) =
+            if yaml_str.trim().is_empty() {
+                (HashMap::new(), None)
+            } else {
+                match serde_yaml::from_str(yaml_str) {
+                    Ok(fm) => (fm, None),
+                    Err(e) => (HashMap::new(), Some(e.to_string())),
+                }
+            };
 
         let tags = fm
             .get("tags")
             .and_then(|v| serde_yaml::from_value::<Vec<String>>(v.clone()).ok())
             .unwrap_or_default();
 
-        (fm, tags, body.trim_start_matches('\n').to_string())
+        (fm, tags, body.trim_start_matches('\n').to_string(), error)
     } else {
-        (HashMap::new(), vec![], content.to_string())
+        (HashMap::new(), vec![], content.to_string(), None)
     }
 }
 
@@ -244,4 +271,51 @@ fn build_sections(documents: &[Document], collections: &[ResolvedCollection]) ->
 
     sections.sort_by(|a, b| (&a.collection, &a.name).cmp(&(&b.collection, &b.name)));
     sections
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_frontmatter;
+
+    #[test]
+    fn valid_frontmatter_has_fields_and_no_error() {
+        let (fm, tags, body, error) =
+            parse_frontmatter("---\ntags: [a, b]\ncreated: 2026-01-01\n---\n\n# T\n");
+        assert_eq!(error, None);
+        assert_eq!(tags, vec!["a", "b"]);
+        assert!(fm.contains_key("created"));
+        assert_eq!(body, "# T\n");
+    }
+
+    #[test]
+    fn unquoted_colon_space_is_an_error_not_silence() {
+        let (fm, tags, body, error) =
+            parse_frontmatter("---\ndescription: Read this: then that\n---\n\n# T\n");
+        assert!(error.is_some());
+        assert!(fm.is_empty());
+        assert!(tags.is_empty());
+        assert_eq!(body, "# T\n");
+    }
+
+    #[test]
+    fn a_non_map_block_is_an_error() {
+        let (_, _, _, error) = parse_frontmatter("---\n- just\n- a list\n---\n# T\n");
+        assert!(error.is_some());
+    }
+
+    #[test]
+    fn an_empty_block_is_valid() {
+        let (fm, _, body, error) = parse_frontmatter("---\n---\n# T\n");
+        assert_eq!(error, None);
+        assert!(fm.is_empty());
+        assert_eq!(body, "# T\n");
+    }
+
+    #[test]
+    fn no_frontmatter_is_not_an_error() {
+        let (fm, _, body, error) = parse_frontmatter("# T\n\nBody.\n");
+        assert_eq!(error, None);
+        assert!(fm.is_empty());
+        assert_eq!(body, "# T\n\nBody.\n");
+    }
 }
