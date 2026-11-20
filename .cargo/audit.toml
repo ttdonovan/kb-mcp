@@ -1,0 +1,32 @@
+# Advisories cargo audit may skip, each with why it does not apply. Remove an entry once the fix lands.
+[advisories]
+ignore = [
+    # rmcp 1.5: unbounded body buffering in Streamable HTTP *clients*. kb-mcp is a stdio server
+    # (features server + transport-io). Fixed in rmcp >= 3.9, a breaking upgrade.
+    "RUSTSEC-2026-0462",
+
+    # lopdf 0.39 via memvid-core: stack overflow on deeply nested PDF objects. memvid parses a payload as
+    # PDF when it starts with "%PDF", so a crafted .md file placed in a collection can crash indexing
+    # (denial of service only). Collections are the user's own files; kb_write bodies start with "# ".
+    "RUSTSEC-2026-0187",
+
+    # calamine 0.22 (XLS) via memvid-core: only selected by an XLS MIME type or extension; kb-mcp sets
+    # no MIME type and its URIs end in .md.
+    "RUSTSEC-2026-0436",
+
+    # quick-xml 0.30/0.31 via memvid-core's DOCX/XLSX/PPTX readers: only selected by an OOXML extension;
+    # kb-mcp's URIs end in .md, so ZIP-magic payloads are read as Markdown.
+    "RUSTSEC-2026-0194",
+    "RUSTSEC-2026-0195",
+
+    # zip 0.6/7.x via memvid-core: archive extraction to disk and AES/legacy decoders, reached only
+    # through the OOXML readers above; memvid never extracts kb-mcp payloads to disk.
+    "RUSTSEC-2026-0367",
+    "RUSTSEC-2026-0368",
+    "RUSTSEC-2026-0369",
+    "RUSTSEC-2026-0429",
+    "RUSTSEC-2026-0545",
+    "RUSTSEC-2026-0546",
+    "RUSTSEC-2026-0547",
+    "RUSTSEC-2026-0548",
+]
