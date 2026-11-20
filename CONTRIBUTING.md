@@ -17,6 +17,13 @@ With Claude Code, `just claude` loads the `kb-mcp-dev` plugin: `/kb-mcp-dev:revi
 
 See `CLAUDE.md` for the architecture, the hard rules (every MCP tool has a CLI equivalent, `kb-core` has no transport dependencies) and how to add a tool.
 
+## Code style
+
+Clippy enforces most of it, through `[workspace.lints]` in `Cargo.toml`, which every crate opts into: `pedantic` and `nursery` are denied, and so are panics outside tests. That means no `unwrap`, `expect`, `panic!`, `todo!`, `unreachable!`, indexing or slicing, unchecked arithmetic, `as` casts, or `process::exit`. `clippy.toml` allows `unwrap`, `expect`, indexing and `panic!` in `#[test]` code.
+
+- Return `Result` or `Option` and handle every case. Use `get` instead of indexing, `checked_*` or `saturating_*` arithmetic, and `TryFrom` instead of `as`.
+- Fix the code rather than silencing a lint, for example by splitting a function that is too long. Where a fix would make the code worse, or the lint is a false positive or fires on generated code, use `#[expect(lint, reason = "...")]` on that one item, never a bare `#[allow]`. An integration test's helpers sit outside `#[test]`, so a file in `tests/` states its own `#![expect(...)]`.
+
 ## Commits
 
 Use [Conventional Commits](https://www.conventionalcommits.org/): prefix each message with its type, write the rest as a sentence, and end it with a full stop.

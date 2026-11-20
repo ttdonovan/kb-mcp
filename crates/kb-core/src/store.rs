@@ -11,6 +11,7 @@
 //! operations — memvid-core is the search layer only.
 
 use std::collections::HashMap;
+use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
@@ -22,6 +23,7 @@ use crate::config::{IndexNames, ResolvedCollection};
 ///
 /// By default uses SHA-256 of the absolute collection path (first 8 hex chars)
 /// as a prefix to avoid collisions across projects with same-named collections.
+#[must_use]
 pub fn mv2_path(cache_dir: &Path, collection: &ResolvedCollection) -> PathBuf {
     match collection.index_names {
         IndexNames::Path => {
@@ -35,6 +37,7 @@ pub fn mv2_path(cache_dir: &Path, collection: &ResolvedCollection) -> PathBuf {
 }
 
 /// Derive the sidecar `.hashes` file path (content hashes for incremental sync).
+#[must_use]
 pub fn hashes_path(cache_dir: &Path, collection: &ResolvedCollection) -> PathBuf {
     let mv2 = mv2_path(cache_dir, collection);
     mv2.with_extension("hashes")
@@ -44,24 +47,26 @@ pub fn hashes_path(cache_dir: &Path, collection: &ResolvedCollection) -> PathBuf
 ///
 /// URI scheme: `<collection>://<relative-path>` — ensures uniqueness across
 /// collections and is parseable back to collection name + filesystem path.
+#[must_use]
 pub fn document_uri(collection_name: &str, relative_path: &str) -> String {
-    format!("{}://{}", collection_name, relative_path)
+    format!("{collection_name}://{relative_path}")
 }
 
-/// Parse a document URI back into (collection_name, relative_path).
+/// Parse a document URI back into (`collection_name`, `relative_path`).
+#[must_use]
 pub fn parse_uri(uri: &str) -> Option<(&str, &str)> {
     uri.split_once("://")
 }
 
-/// Content hash map: relative_path → blake3 hex hash.
+/// Content hash map: `relative_path` → blake3 hex hash.
 /// Serialized as a simple newline-delimited format: `<hash> <path>`.
 pub type HashIndex = HashMap<String, String>;
 
 /// Load content hashes from the sidecar file.
+#[must_use]
 pub fn load_hashes(path: &Path) -> HashIndex {
-    let content = match std::fs::read_to_string(path) {
-        Ok(c) => c,
-        Err(_) => return HashMap::new(),
+    let Ok(content) = std::fs::read_to_string(path) else {
+        return HashMap::new();
     };
 
     content
@@ -77,10 +82,14 @@ pub fn load_hashes(path: &Path) -> HashIndex {
 ///
 /// Written via temp file + rename so a concurrent reader in another process
 /// never sees a half-written sidecar.
+///
+/// # Errors
+///
+/// The temp file cannot be written or renamed into place.
 pub fn save_hashes(path: &Path, hashes: &HashIndex) -> Result<()> {
     let mut lines: Vec<String> = hashes
         .iter()
-        .map(|(path, hash)| format!("{} {}", hash, path))
+        .map(|(path, hash)| format!("{hash} {path}"))
         .collect();
     lines.sort();
 
@@ -95,6 +104,7 @@ pub fn save_hashes(path: &Path, hashes: &HashIndex) -> Result<()> {
 }
 
 /// Compute blake3 hash of file content.
+#[must_use]
 pub fn hash_content(content: &[u8]) -> String {
     let hash = blake3::hash(content);
     hash.to_hex().to_string()
@@ -108,6 +118,10 @@ pub fn hash_content(content: &[u8]) -> String {
 /// changed indexing) — incremental sync trusts the sidecar and can never
 /// re-ingest such documents on its own. Explicit reindex calls this; the
 /// startup and auto-resync paths stay incremental.
+///
+/// # Errors
+///
+/// The store or its sidecar exists but cannot be removed.
 pub fn clear_collection_store(cache_dir: &Path, collection: &ResolvedCollection) -> Result<()> {
     let mv2 = mv2_path(cache_dir, collection);
     let hashes = hashes_path(cache_dir, collection);
@@ -122,6 +136,10 @@ pub fn clear_collection_store(cache_dir: &Path, collection: &ResolvedCollection)
 }
 
 /// Ensure the cache directory exists.
+///
+/// # Errors
+///
+/// The directory cannot be created.
 pub fn ensure_cache_dir(cache_dir: &Path) -> Result<()> {
     if !cache_dir.exists() {
         std::fs::create_dir_all(cache_dir)
@@ -142,6 +160,7 @@ pub struct SyncDiff {
 
 /// Compare current filesystem hashes against the stored sidecar to determine
 /// which documents need to be added/removed from the .mv2 index.
+#[must_use]
 pub fn compute_diff(current: &HashIndex, stored: &HashIndex) -> SyncDiff {
     let mut to_add = Vec::new();
     let mut to_remove = Vec::new();
@@ -175,6 +194,11 @@ pub fn compute_diff(current: &HashIndex, stored: &HashIndex) -> SyncDiff {
 /// file and renamed over it, and the returned handle is always read-only
 /// (shared lock). Other processes keep searching their own snapshot until
 /// they resync.
+///
+/// # Errors
+///
+/// The cache dir cannot be created, or building, committing or opening a
+/// store, or saving its sidecar, fails.
 pub fn sync_collection(
     cache_dir: &Path,
     collection: &crate::config::ResolvedCollection,
@@ -188,7 +212,7 @@ pub fn sync_collection(
     let hashes_file = hashes_path(cache_dir, collection);
     let stored_hashes = load_hashes(&hashes_file);
     let diff = compute_diff(current_hashes, &stored_hashes);
-    let changes = diff.to_add.len() + diff.to_remove.len();
+    let changes = diff.to_add.len().saturating_add(diff.to_remove.len());
 
     if changes == 0 && mv2.exists() {
         match memvid_core::Memvid::open_read_only(&mv2) {
@@ -356,8 +380,11 @@ fn hex_prefix(bytes: &[u8], len: usize) -> String {
     bytes
         .iter()
         .take(len.div_ceil(2))
-        .map(|b| format!("{:02x}", b))
-        .collect::<String>()
+        .fold(String::new(), |mut hex, b| {
+            // Writing to a String cannot fail.
+            let _ = write!(hex, "{b:02x}");
+            hex
+        })
         .chars()
         .take(len)
         .collect()

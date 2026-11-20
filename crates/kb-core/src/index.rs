@@ -17,12 +17,13 @@ use crate::types::{Document, Section};
 pub struct Index {
     pub documents: Vec<Document>,
     pub sections: Vec<Section>,
-    /// Per-collection content hashes: collection_name → (relative_path → blake3 hash).
+    /// Per-collection content hashes: `collection_name` → (`relative_path` → blake3 hash).
     /// Used by `store::sync_collection` to determine which docs changed.
     pub content_hashes: HashMap<String, store::HashIndex>,
 }
 
 impl Index {
+    #[must_use]
     pub fn build(collections: &[ResolvedCollection]) -> Self {
         let mut documents = Vec::new();
         let mut content_hashes: HashMap<String, store::HashIndex> = HashMap::new();
@@ -44,7 +45,7 @@ impl Index {
 
         let sections = build_sections(&documents, collections);
 
-        Index {
+        Self {
             documents,
             sections,
             content_hashes,
@@ -85,10 +86,12 @@ impl Index {
         self.sections = build_sections(&self.documents, all_collections);
     }
 
+    #[must_use]
     pub fn find_by_path(&self, path: &str) -> Option<&Document> {
         self.documents.iter().find(|d| d.path == path)
     }
 
+    #[must_use]
     pub fn find_by_title(&self, title: &str) -> Option<&Document> {
         let lower = title.to_lowercase();
         self.documents
@@ -105,9 +108,8 @@ fn scan_dir(
     docs: &mut Vec<Document>,
     hashes: &mut store::HashIndex,
 ) {
-    let entries = match std::fs::read_dir(dir) {
-        Ok(e) => e,
-        Err(_) => return,
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return;
     };
 
     for entry in entries.flatten() {
@@ -159,16 +161,15 @@ fn parse_document_with_hash(
         );
     }
 
-    let title = body
-        .lines()
-        .find(|l| l.starts_with("# "))
-        .map(|l| l.trim_start_matches("# ").to_string())
-        .unwrap_or_else(|| {
+    let title = body.lines().find(|l| l.starts_with("# ")).map_or_else(
+        || {
             rel_path
                 .file_stem()
                 .map(|s| s.to_string_lossy().to_string())
                 .unwrap_or_default()
-        });
+        },
+        |l| l.trim_start_matches("# ").to_string(),
+    );
 
     let _ = section_defs; // used by build_sections, not here
 
@@ -195,41 +196,36 @@ type ParsedFrontmatter = (
     Option<String>,
 );
 
-/// Parse YAML frontmatter delimited by `---`. Returns all fields as a HashMap
+/// Parse YAML frontmatter delimited by `---`. Returns all fields as a `HashMap`
 /// (for `kb_context`), extracted tags (for search indexing), the body with
 /// frontmatter stripped, and the parse error if the block is not valid YAML.
 /// A malformed block yields no fields rather than failing the document, but
 /// its error is kept so `kb_health` can report it instead of hiding it.
 fn parse_frontmatter(content: &str) -> ParsedFrontmatter {
-    if !content.starts_with("---") {
+    let Some((yaml_str, body)) = content
+        .strip_prefix("---")
+        .and_then(|after| after.split_once("\n---"))
+    else {
         return (HashMap::new(), vec![], content.to_string(), None);
-    }
+    };
 
-    let after_first = &content[3..];
-    if let Some(end) = after_first.find("\n---") {
-        let yaml_str = &after_first[..end];
-        let body = &after_first[end + 4..];
+    // An empty block is valid; serde_yaml would reject it as a map.
+    let (fm, error): (HashMap<String, serde_yaml::Value>, Option<String>) =
+        if yaml_str.trim().is_empty() {
+            (HashMap::new(), None)
+        } else {
+            match serde_yaml::from_str(yaml_str) {
+                Ok(fm) => (fm, None),
+                Err(e) => (HashMap::new(), Some(e.to_string())),
+            }
+        };
 
-        // An empty block is valid; serde_yaml would reject it as a map.
-        let (fm, error): (HashMap<String, serde_yaml::Value>, Option<String>) =
-            if yaml_str.trim().is_empty() {
-                (HashMap::new(), None)
-            } else {
-                match serde_yaml::from_str(yaml_str) {
-                    Ok(fm) => (fm, None),
-                    Err(e) => (HashMap::new(), Some(e.to_string())),
-                }
-            };
+    let tags = fm
+        .get("tags")
+        .and_then(|v| serde_yaml::from_value::<Vec<String>>(v.clone()).ok())
+        .unwrap_or_default();
 
-        let tags = fm
-            .get("tags")
-            .and_then(|v| serde_yaml::from_value::<Vec<String>>(v.clone()).ok())
-            .unwrap_or_default();
-
-        (fm, tags, body.trim_start_matches('\n').to_string(), error)
-    } else {
-        (HashMap::new(), vec![], content.to_string(), None)
-    }
+    (fm, tags, body.trim_start_matches('\n').to_string(), error)
 }
 
 /// Derive sections from document counts, enriched with descriptions from RON config.
@@ -247,9 +243,10 @@ fn build_sections(documents: &[Document], collections: &[ResolvedCollection]) ->
     // root-level files carry the ROOT_SECTION sentinel.
     let mut counts: HashMap<(String, String), usize> = HashMap::new();
     for doc in documents {
-        *counts
+        let count = counts
             .entry((doc.collection.clone(), doc.section.clone()))
-            .or_default() += 1;
+            .or_default();
+        *count = count.saturating_add(1);
     }
 
     let mut sections: Vec<Section> = counts
@@ -257,7 +254,7 @@ fn build_sections(documents: &[Document], collections: &[ResolvedCollection]) ->
         .map(|((collection, name), doc_count)| {
             let description = desc_map
                 .get(&(collection.as_str(), name.as_str()))
-                .map(|d| d.to_string())
+                .map(std::string::ToString::to_string)
                 .unwrap_or_default();
 
             Section {

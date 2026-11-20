@@ -26,7 +26,7 @@ pub struct QueryParams {
     pub has_sources: bool,
 }
 
-pub(crate) fn router() -> rmcp::handler::server::router::tool::ToolRouter<KbMcpServer> {
+pub fn router() -> rmcp::handler::server::router::tool::ToolRouter<KbMcpServer> {
     KbMcpServer::query_router()
 }
 
@@ -45,8 +45,7 @@ impl KbMcpServer {
         {
             return Ok(CallToolResult::error(vec![
                 rmcp::model::ContentBlock::text(format!(
-                    "Invalid created_after date '{}', expected YYYY-MM-DD format",
-                    date_str
+                    "Invalid created_after date '{date_str}', expected YYYY-MM-DD format"
                 )),
             ]));
         }
@@ -68,6 +67,7 @@ impl KbMcpServer {
             })
             .collect();
         let json = kb_core::format::format_query(&results);
+        drop(index);
         Ok(CallToolResult::success(vec![
             rmcp::model::ContentBlock::text(json),
         ]))

@@ -37,7 +37,12 @@ pub struct AppContext {
 
 /// Initialize the full application: load config, build index, sync stores,
 /// create search engine.
-pub async fn init(config_path: Option<&Path>) -> Result<AppContext> {
+///
+/// # Errors
+///
+/// No config file is found, it cannot be read or parsed, the cache dir cannot
+/// be created, or (with `hybrid`) the embedding model cannot be loaded.
+pub fn init(config_path: Option<&Path>) -> Result<AppContext> {
     let config = config::load_config(config_path)?;
     let ResolvedConfig {
         cache_dir,
@@ -77,7 +82,7 @@ pub async fn init(config_path: Option<&Path>) -> Result<AppContext> {
 }
 
 /// Sync .mv2 files for all collections against the filesystem.
-/// Returns a map of collection_name -> Memvid handle for the search engine.
+/// Returns a map of `collection_name` -> Memvid handle for the search engine.
 pub fn sync_stores(
     cache_dir: &Path,
     index: &Index,
@@ -93,11 +98,11 @@ pub fn sync_stores(
             .cloned()
             .unwrap_or_default();
 
-        let docs: Vec<&types::Document> = index
+        let doc_count = index
             .documents
             .iter()
             .filter(|d| d.collection == collection.name)
-            .collect();
+            .count();
 
         match store::sync_collection(
             cache_dir,
@@ -113,7 +118,7 @@ pub fn sync_stores(
                         "synced collection '{}': {} changes ({} docs)",
                         collection.name,
                         changes,
-                        docs.len()
+                        doc_count
                     );
                 }
                 stores.insert(collection.name.clone(), mem);

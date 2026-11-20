@@ -32,7 +32,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_ansi(false)
         .init();
 
-    let ctx = kb_core::init(None).await?;
+    let ctx = kb_core::init(None)?;
 
     tracing::info!(
         "kb-mcp ready: {} documents across {} sections",

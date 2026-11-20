@@ -4,10 +4,11 @@ use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::CallToolResult;
 use schemars::JsonSchema;
 use serde::Deserialize;
+use std::fmt::Write as _;
 
 use crate::server::KbMcpServer;
 
-fn default_max_documents() -> usize {
+const fn default_max_documents() -> usize {
     200
 }
 
@@ -22,7 +23,7 @@ pub struct ExportParams {
     pub max_documents: usize,
 }
 
-pub(crate) fn router() -> rmcp::handler::server::router::tool::ToolRouter<KbMcpServer> {
+pub fn router() -> rmcp::handler::server::router::tool::ToolRouter<KbMcpServer> {
     KbMcpServer::export_router()
 }
 
@@ -67,10 +68,10 @@ impl KbMcpServer {
             .collect();
 
         if docs_with_bodies.is_empty() {
-            let msg = match &params.collection {
-                Some(c) => format!("No documents found in collection '{}'", c),
-                None => "No documents found".to_string(),
-            };
+            let msg = params.collection.as_ref().map_or_else(
+                || "No documents found".to_string(),
+                |c| format!("No documents found in collection '{c}'"),
+            );
             return Ok(CallToolResult::error(vec![
                 rmcp::model::ContentBlock::text(msg),
             ]));
@@ -78,13 +79,16 @@ impl KbMcpServer {
 
         let mut output =
             kb_core::format::format_export(&docs_with_bodies, params.collection.as_deref());
+        let shown = docs_with_bodies.len();
+        drop(docs_with_bodies);
+        drop(index);
 
         if matching_count > params.max_documents {
-            output.push_str(&format!(
-                "... truncated: showing {} of {} documents\n",
-                docs_with_bodies.len(),
-                matching_count
-            ));
+            // Writing to a String cannot fail.
+            let _ = writeln!(
+                output,
+                "... truncated: showing {shown} of {matching_count} documents"
+            );
         }
         Ok(CallToolResult::success(vec![
             rmcp::model::ContentBlock::text(output),

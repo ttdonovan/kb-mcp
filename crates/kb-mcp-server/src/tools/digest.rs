@@ -14,7 +14,7 @@ pub struct DigestParams {
     pub collection: Option<String>,
 }
 
-pub(crate) fn router() -> rmcp::handler::server::router::tool::ToolRouter<KbMcpServer> {
+pub fn router() -> rmcp::handler::server::router::tool::ToolRouter<KbMcpServer> {
     KbMcpServer::digest_router()
 }
 
@@ -35,6 +35,7 @@ impl KbMcpServer {
             &index.sections,
             params.collection.as_deref(),
         );
+        drop(index);
         Ok(CallToolResult::success(vec![
             rmcp::model::ContentBlock::text(json),
         ]))

@@ -7,10 +7,12 @@
 use serde::Serialize;
 
 /// Section name assigned to documents that sit directly at a collection root
-/// (e.g. `languages/rust.md` with no subdirectory). A sentinel rather than the
-/// empty string so root documents flow through section grouping, digest
-/// matching, and scope filtering without special-casing — an empty section
-/// name would be skipped by grouping and unselectable as a search scope.
+/// (e.g. `languages/rust.md` with no subdirectory).
+///
+/// A sentinel rather than the empty string so root documents flow through
+/// section grouping, digest matching, and scope filtering without
+/// special-casing — an empty section name would be skipped by grouping and
+/// unselectable as a search scope.
 pub const ROOT_SECTION: &str = "(root)";
 
 /// A parsed markdown document. Built during filesystem scanning and held

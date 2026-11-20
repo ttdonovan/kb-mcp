@@ -4,7 +4,7 @@ use rmcp::model::CallToolResult;
 
 use crate::server::KbMcpServer;
 
-pub(crate) fn router() -> rmcp::handler::server::router::tool::ToolRouter<KbMcpServer> {
+pub fn router() -> rmcp::handler::server::router::tool::ToolRouter<KbMcpServer> {
     KbMcpServer::reindex_router()
 }
 
@@ -20,7 +20,7 @@ impl KbMcpServer {
         let section_count = new_index.sections.len();
 
         let mut new_stores = HashMap::new();
-        let mut total_changes = 0;
+        let mut total_changes: usize = 0;
 
         for collection in self.collections.iter() {
             let current_hashes = new_index
@@ -50,7 +50,7 @@ impl KbMcpServer {
                 &self.embedder,
             ) {
                 Ok((mem, changes)) => {
-                    total_changes += changes;
+                    total_changes = total_changes.saturating_add(changes);
                     new_stores.insert(collection.name.clone(), mem);
                 }
                 Err(e) => {
@@ -72,8 +72,7 @@ impl KbMcpServer {
         }
 
         let msg = format!(
-            "Reindexed {} documents across {} sections ({} changes synced)",
-            doc_count, section_count, total_changes
+            "Reindexed {doc_count} documents across {section_count} sections ({total_changes} changes synced)"
         );
         Ok(CallToolResult::success(vec![
             rmcp::model::ContentBlock::text(msg),

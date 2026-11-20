@@ -77,9 +77,7 @@ impl Config {
     pub fn resolve(self, config_dir: &Path) -> ResolvedConfig {
         let cache_dir = self
             .cache_dir
-            // Relative to the config file, like collection paths, so it does not depend on the working directory.
-            .map(|s| config_dir.join(shellexpand(&s)))
-            .unwrap_or_else(default_cache_dir);
+            .map_or_else(default_cache_dir, |s| config_dir.join(shellexpand(&s)));
 
         let index_names = self.index_names;
         let collections = self
@@ -108,12 +106,16 @@ impl Config {
 
 /// Load config using resolution chain:
 /// 1. --config CLI flag
-/// 2. KB_MCP_CONFIG env var
+/// 2. `KB_MCP_CONFIG` env var
 /// 3. ./collections.ron
 /// 4. ~/.config/kb-mcp/collections.ron
 ///
 /// `KB_MCP_CACHE_DIR` overrides the file's `cache_dir`, so a launcher that cannot edit a shared
 /// config, such as a plugin, can still choose where the index goes.
+///
+/// # Errors
+///
+/// No config file is found, or the one found cannot be read or parsed as RON.
 pub fn load_config(explicit_path: Option<&Path>) -> Result<ResolvedConfig> {
     let (config_path, config_dir) = find_config(explicit_path)?;
     let content = std::fs::read_to_string(&config_path)
@@ -132,7 +134,10 @@ fn find_config(explicit_path: Option<&Path>) -> Result<(PathBuf, PathBuf)> {
     // 1. Explicit --config flag
     if let Some(path) = explicit_path {
         let path = path.to_path_buf();
-        let dir = path.parent().unwrap_or(Path::new(".")).to_path_buf();
+        let dir = path
+            .parent()
+            .unwrap_or_else(|| Path::new("."))
+            .to_path_buf();
         return Ok((path, dir));
     }
 
@@ -140,7 +145,10 @@ fn find_config(explicit_path: Option<&Path>) -> Result<(PathBuf, PathBuf)> {
     if let Ok(env_path) = std::env::var("KB_MCP_CONFIG") {
         let path = PathBuf::from(env_path);
         if path.exists() {
-            let dir = path.parent().unwrap_or(Path::new(".")).to_path_buf();
+            let dir = path
+                .parent()
+                .unwrap_or_else(|| Path::new("."))
+                .to_path_buf();
             return Ok((path, dir));
         }
     }
@@ -154,9 +162,9 @@ fn find_config(explicit_path: Option<&Path>) -> Result<(PathBuf, PathBuf)> {
 
     // 4. ~/.config/kb-mcp/collections.ron
     if let Some(config_home) = dirs::config_dir() {
-        let global = config_home.join("kb-mcp").join("collections.ron");
+        let dir = config_home.join("kb-mcp");
+        let global = dir.join("collections.ron");
         if global.exists() {
-            let dir = global.parent().unwrap().to_path_buf();
             return Ok((global, dir));
         }
     }
@@ -179,10 +187,10 @@ fn default_cache_dir() -> PathBuf {
 /// Minimal `~` expansion — only handles `~/...` prefix. We avoid pulling in
 /// a full shellexpand crate for this single use case.
 fn shellexpand(s: &str) -> String {
-    if s.starts_with("~/")
+    if let Some(rest) = s.strip_prefix("~/")
         && let Some(home) = dirs::home_dir()
     {
-        return format!("{}{}", home.display(), &s[1..]);
+        return format!("{}/{rest}", home.display());
     }
     s.to_string()
 }

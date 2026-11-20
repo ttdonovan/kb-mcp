@@ -5,6 +5,12 @@
 //! handle's lock nor mutate the file that handle has open.
 
 #![cfg(not(feature = "hybrid"))]
+#![expect(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::indexing_slicing,
+    reason = "a test: a failed setup step should fail it"
+)]
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -19,7 +25,7 @@ use kb_core::store;
 const MAX_SYNC: Duration = Duration::from_secs(3);
 
 fn fixture(test_name: &str, with_doc: bool) -> (PathBuf, PathBuf, ResolvedCollection) {
-    let root = std::env::temp_dir().join(format!("kb-mcp-shared-index-{}", test_name));
+    let root = std::env::temp_dir().join(format!("kb-mcp-shared-index-{test_name}"));
     let _ = std::fs::remove_dir_all(&root);
     let notes = root.join("notes");
     std::fs::create_dir_all(&notes).unwrap();

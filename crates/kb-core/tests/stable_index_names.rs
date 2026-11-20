@@ -2,6 +2,10 @@
 //! collections move, e.g. each plugin update installing to a new folder (issue #3).
 
 #![cfg(not(feature = "hybrid"))]
+#![expect(
+    clippy::unwrap_used,
+    reason = "a test: a failed setup step should fail it"
+)]
 
 use std::collections::HashMap;
 use std::path::Path;

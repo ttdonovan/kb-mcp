@@ -6,6 +6,11 @@
 //! though they were indexed and retrievable by exact path. They now carry
 //! the `ROOT_SECTION` sentinel so every section-shaped view includes them.
 
+#![expect(
+    clippy::unwrap_used,
+    reason = "a test: a failed setup step should fail it"
+)]
+
 use std::path::PathBuf;
 
 use kb_core::config::{IndexNames, ResolvedCollection, SectionDef};
@@ -15,7 +20,7 @@ use kb_core::types::ROOT_SECTION;
 /// Build a fixture vault with one subdirectory section (`golang/`) and one
 /// loose file (`rust.md`) at the collection root.
 fn fixture_collection(test_name: &str) -> (PathBuf, ResolvedCollection) {
-    let root = std::env::temp_dir().join(format!("kb-mcp-loose-files-{}", test_name));
+    let root = std::env::temp_dir().join(format!("kb-mcp-loose-files-{test_name}"));
     let _ = std::fs::remove_dir_all(&root);
     let languages = root.join("languages");
     std::fs::create_dir_all(languages.join("golang")).unwrap();
