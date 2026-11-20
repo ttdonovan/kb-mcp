@@ -62,6 +62,21 @@ book-serve:
     @cd book && mdbook serve --open
 
 # =============================================================================
+# Plugins
+# =============================================================================
+
+# Validate the plugin marketplace and both plugins
+plugin-validate:
+    claude plugin validate .claude-plugin/marketplace.json
+    claude plugin validate ./plugins/kb-mcp
+    claude plugin validate ./plugins/kb-mcp-dev
+
+# Start Claude Code with the kb-mcp-dev plugin loaded, e.g. `just claude --resume`
+[positional-arguments]
+claude *args:
+    claude --plugin-dir ./plugins/kb-mcp-dev "$@"
+
+# =============================================================================
 # Dev
 # =============================================================================
 

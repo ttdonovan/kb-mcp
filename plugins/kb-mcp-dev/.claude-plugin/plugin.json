@@ -1,0 +1,10 @@
+{
+  "name": "kb-mcp-dev",
+  "description": "For changing kb-mcp itself: adding a tool, reviewing changes to the code and the docs, working in a stack of pull requests, and making a release",
+  "author": {
+    "name": "ttdonovan"
+  },
+  "repository": "https://github.com/ttdonovan/kb-mcp",
+  "license": "MIT",
+  "keywords": ["kb-mcp", "review", "release"]
+}

@@ -204,6 +204,17 @@ architecture diagrams. Source pages live in `book/src/` — some are
 `{{#include}}` wrappers that pull content from `docs/` so that
 documentation has a single source of truth.
 
+## Claude Code Plugin
+
+The `kb-mcp` plugin teaches Claude Code to search and read a knowledge base through kb-mcp's tools, and to set kb-mcp up for a project:
+
+```sh
+claude plugin marketplace add ttdonovan/kb-mcp
+claude plugin install kb-mcp@kb-mcp
+```
+
+It adds a skill, not the server: register `kb-mcp` in each project's `.mcp.json` as above. See [Claude Code Plugins](https://ttdonovan.github.io/kb-mcp/development/plugins.html).
+
 ## Researcher Agent
 
 A containerized agent that uses kb-mcp to research AI agent memory topics
@@ -237,6 +248,7 @@ just run <args>   # Run CLI (e.g., just run list-sections)
 just run-server   # Run MCP server
 just book-build   # Build documentation
 just book-serve   # Serve docs with live reload
+just claude       # Claude Code with the kb-mcp-dev plugin loaded
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for commit messages and how releases
