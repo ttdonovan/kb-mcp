@@ -31,6 +31,26 @@ point at your directories. See [Configuration](#configuration) below.
 
 ## Install
 
+Prebuilt `kb` and `kb-mcp` binaries (BM25 only) for Linux (x86_64, arm64,
+static musl) and macOS (arm64, x86_64) are attached to each
+[GitHub Release](https://github.com/ttdonovan/kb-mcp/releases), with a
+`SHA256SUMS` file and build provenance:
+
+```sh
+TAG=vX.Y.Z TARGET=aarch64-apple-darwin
+curl -fsSLO "https://github.com/ttdonovan/kb-mcp/releases/download/$TAG/kb-mcp-$TAG-$TARGET.tar.gz"
+gh attestation verify "kb-mcp-$TAG-$TARGET.tar.gz" --repo ttdonovan/kb-mcp
+tar -xzf "kb-mcp-$TAG-$TARGET.tar.gz"   # then put kb and kb-mcp on your PATH
+```
+
+Or build a release from its tag (kb-mcp is not on crates.io):
+
+```sh
+cargo install --locked --git https://github.com/ttdonovan/kb-mcp --tag vX.Y.Z kb-cli kb-mcp-server
+```
+
+From a clone:
+
 ```sh
 # Install both binaries (CLI `kb` + MCP server `kb-mcp`)
 just install
@@ -211,11 +231,16 @@ just release      # Build all crates (release)
 just check        # cargo check --workspace
 just clippy       # Lint all crates
 just test         # Run all tests
+just fmt          # Format all crates
+just ci           # The CI gate: fmt, clippy, tests, audit, crate age
 just run <args>   # Run CLI (e.g., just run list-sections)
 just run-server   # Run MCP server
 just book-build   # Build documentation
 just book-serve   # Serve docs with live reload
 ```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for commit messages and how releases
+are made.
 
 ## License
 

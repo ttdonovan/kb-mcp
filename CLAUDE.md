@@ -119,6 +119,8 @@ just release      # cargo build --release --workspace
 just check        # cargo check --workspace
 just clippy       # cargo clippy --workspace
 just test         # cargo test --workspace
+just fmt          # cargo fmt --all
+just ci           # CI gate (scripts/ci/check.sh): fmt, clippy -D warnings (BM25 + hybrid), tests, audit, crate age
 just install      # Install both kb and kb-mcp binaries
 just install-cli  # Install kb CLI only
 just install-server # Install kb-mcp server only
