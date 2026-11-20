@@ -35,8 +35,8 @@ impl KbMcpServer {
             &index.sections,
             params.collection.as_deref(),
         );
-        Ok(CallToolResult::success(vec![rmcp::model::Content::text(
-            json,
-        )]))
+        Ok(CallToolResult::success(vec![
+            rmcp::model::ContentBlock::text(json),
+        ]))
     }
 }

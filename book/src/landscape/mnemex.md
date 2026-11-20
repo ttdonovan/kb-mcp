@@ -1,5 +1,5 @@
 ---
-description: mnemex, local semantic code search for Claude Code: what it does, how it compares with kb-mcp, and what to learn from it
+description: "mnemex, local semantic code search for Claude Code: what it does, how it compares with kb-mcp, and what to learn from it"
 ---
 
 # mnemex

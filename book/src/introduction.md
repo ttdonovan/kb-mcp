@@ -1,5 +1,5 @@
 ---
-description: Start here if you are deciding whether to use kb-mcp. What it is, why it exists, where it fits beside other agent memory and search tools, and where to read next
+description: "Start here if you are deciding whether to use kb-mcp. What it is, why it exists, where it fits beside other agent memory and search tools, and where to read next"
 ---
 
 # kb-mcp

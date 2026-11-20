@@ -445,6 +445,7 @@ pub struct HealthCollectionOutput {
     pub name: String,
     pub doc_count: usize,
     pub issues: usize,
+    pub malformed_frontmatter: Vec<HealthMalformedRef>,
     pub missing_created: Vec<HealthDocRef>,
     pub missing_updated: Vec<HealthDocRef>,
     pub no_tags: Vec<HealthDocRef>,
@@ -458,6 +459,14 @@ pub struct HealthCollectionOutput {
 pub struct HealthDocRef {
     pub path: String,
     pub title: String,
+}
+
+#[derive(Serialize)]
+pub struct HealthMalformedRef {
+    pub path: String,
+    pub title: String,
+    /// The YAML parser's message, so the user can find the bad line.
+    pub error: String,
 }
 
 #[derive(Serialize)]
@@ -483,7 +492,8 @@ pub struct HealthBrokenLinkRef {
 
 /// Build a vault health report — document quality and hygiene checks.
 ///
-/// Checks frontmatter completeness (created/updated/tags), content quality
+/// Checks frontmatter that fails to parse, frontmatter completeness
+/// (created/updated/tags), content quality
 /// (staleness, stub detection), and link integrity (orphans, broken wiki-links).
 pub fn format_health(
     documents: &[Document],
@@ -565,6 +575,7 @@ pub fn format_health(
         let coll_entries = &coll_docs[coll_name];
         total_checked += coll_entries.len();
 
+        let mut malformed_frontmatter = Vec::new();
         let mut missing_created = Vec::new();
         let mut missing_updated = Vec::new();
         let mut no_tags = Vec::new();
@@ -579,19 +590,24 @@ pub fn format_health(
                 title: doc.title.clone(),
             };
 
-            // Missing created
-            if !doc.frontmatter.contains_key("created") {
-                missing_created.push(doc_ref());
-            }
-
-            // Missing updated
-            if !doc.frontmatter.contains_key("updated") {
-                missing_updated.push(doc_ref());
-            }
-
-            // No tags
-            if doc.tags.is_empty() {
-                no_tags.push(doc_ref());
+            // A block that failed to parse has no fields: report it once,
+            // rather than as missing created, updated and tags.
+            if let Some(error) = &doc.frontmatter_error {
+                malformed_frontmatter.push(HealthMalformedRef {
+                    path: doc.path.clone(),
+                    title: doc.title.clone(),
+                    error: error.clone(),
+                });
+            } else {
+                if !doc.frontmatter.contains_key("created") {
+                    missing_created.push(doc_ref());
+                }
+                if !doc.frontmatter.contains_key("updated") {
+                    missing_updated.push(doc_ref());
+                }
+                if doc.tags.is_empty() {
+                    no_tags.push(doc_ref());
+                }
             }
 
             // Staleness: use updated, fall back to created
@@ -639,7 +655,8 @@ pub fn format_health(
             }
         }
 
-        let issues = missing_created.len()
+        let issues = malformed_frontmatter.len()
+            + missing_created.len()
             + missing_updated.len()
             + no_tags.len()
             + stale.len()
@@ -652,6 +669,7 @@ pub fn format_health(
             name: coll_name.to_string(),
             doc_count: coll_entries.len(),
             issues,
+            malformed_frontmatter,
             missing_created,
             missing_updated,
             no_tags,

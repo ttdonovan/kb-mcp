@@ -36,7 +36,7 @@ pub(crate) fn router() -> rmcp::handler::server::router::tool::ToolRouter<KbMcpS
 impl KbMcpServer {
     #[rmcp::tool(
         name = "kb_health",
-        description = "Vault health diagnostics — checks document quality across collections. Flags missing frontmatter dates, untagged docs, stale content, stub documents, orphaned notes (no inbound wiki-links), and broken wiki-links. Use kb_digest for coverage overview, kb_health for quality issues."
+        description = "Vault health diagnostics — checks document quality across collections. Flags frontmatter that is not valid YAML, missing frontmatter dates, untagged docs, stale content, stub documents, orphaned notes (no inbound wiki-links), and broken wiki-links. Use kb_digest for coverage overview, kb_health for quality issues."
     )]
     pub(crate) async fn kb_health(
         &self,
@@ -46,13 +46,13 @@ impl KbMcpServer {
             && !self.collections.iter().any(|c| c.name == *coll)
         {
             let available: Vec<&str> = self.collections.iter().map(|c| c.name.as_str()).collect();
-            return Ok(CallToolResult::error(vec![rmcp::model::Content::text(
-                format!(
+            return Ok(CallToolResult::error(vec![
+                rmcp::model::ContentBlock::text(format!(
                     "Collection '{}' not found. Available: {}",
                     coll,
                     available.join(", ")
-                ),
-            )]));
+                )),
+            ]));
         }
 
         self.auto_reindex_stale_collections().await;
@@ -63,8 +63,8 @@ impl KbMcpServer {
             params.stale_days,
             params.min_words,
         );
-        Ok(CallToolResult::success(vec![rmcp::model::Content::text(
-            json,
-        )]))
+        Ok(CallToolResult::success(vec![
+            rmcp::model::ContentBlock::text(json),
+        ]))
     }
 }

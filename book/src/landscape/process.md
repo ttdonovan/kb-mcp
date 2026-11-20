@@ -1,5 +1,5 @@
 ---
-description: Read before adding or updating a landscape page: how projects are found, reviewed and written up
+description: "Read before adding or updating a landscape page: how projects are found, reviewed and written up"
 ---
 
 # Landscape Review Process

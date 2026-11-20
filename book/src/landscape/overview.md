@@ -1,5 +1,5 @@
 ---
-description: Read to compare kb-mcp with other agent memory and knowledge projects: a table of each, and where kb-mcp fits
+description: "Read to compare kb-mcp with other agent memory and knowledge projects: a table of each, and where kb-mcp fits"
 ---
 
 # Landscape

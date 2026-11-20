@@ -1,5 +1,5 @@
 ---
-description: Read to run kb-mcp as an MCP server for an agent: registering it in .mcp.json and what happens at startup
+description: "Read to run kb-mcp as an MCP server for an agent: registering it in .mcp.json and what happens at startup"
 ---
 
 # MCP Server

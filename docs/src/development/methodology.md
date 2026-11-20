@@ -1,5 +1,5 @@
 ---
-description: How kb-mcp is developed with Claude Code and the Compound Engineering workflow, and where brainstorms, plans and solutions are kept
+description: "How kb-mcp is developed with Claude Code and the Compound Engineering workflow, and where brainstorms, plans and solutions are kept"
 ---
 
 # Development Tooling & Methodology
@@ -21,8 +21,9 @@ Key patterns used in this project:
 
 - **Parallel agent dispatch** — Spawning research agents to investigate
   APIs and codebase patterns simultaneously before writing code
-- **MCP server integration** — kb-mcp registered in `.mcp.json` gives
-  Claude Code direct access to search and query the vault during development
+- **MCP server integration** — the `kb-dev` server of the `kb-mcp-dev`
+  plugin (`just claude`) runs kb-mcp built from the checkout, giving Claude
+  Code direct access to search and query the vault during development
 - **Plan mode** — Designing architecture before writing code, then
   executing with task tracking
 - **Memory system** — Persistent context across sessions for project
@@ -69,8 +70,9 @@ with context instead of rediscovering it.
 ### kb-mcp (Dogfooding)
 
 [kb-mcp](https://github.com/ttdonovan/kb-mcp) is both the product and a
-development tool. During Claude Code sessions, it's registered as an MCP
-server in `.mcp.json`, giving the AI direct access to search the vault.
+development tool. In a session started with `just claude`, the
+`kb-mcp-dev` plugin's `kb-dev` server runs it from the checkout, giving the
+AI direct access to search the vault.
 
 This means Claude Code can:
 
@@ -147,7 +149,7 @@ git push origin --delete feat/feature-name
 **Starting a session:**
 
 ```bash
-# Claude Code has kb-mcp available via .mcp.json
+# `just claude` gives Claude Code the kb-dev server
 # Search the vault to understand current state
 kb-mcp list-sections
 kb-mcp search --query "whatever you're working on"

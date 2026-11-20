@@ -1,5 +1,5 @@
 ---
-description: Start here. What kb-mcp is, how to read this book as an agent or a person, what each chapter covers, and how to build the book
+description: "Start here. What kb-mcp is, how to read this book as an agent or a person, what each chapter covers, and how to build the book"
 ---
 
 # About this book

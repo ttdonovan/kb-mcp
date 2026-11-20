@@ -33,9 +33,12 @@ impl KbMcpServer {
             // sidecar is the only way to repair state where the sidecar
             // wrongly claims documents are already ingested.
             if let Err(e) = kb_core::store::clear_collection_store(&self.cache_dir, collection) {
-                return Ok(CallToolResult::error(vec![rmcp::model::Content::text(
-                    format!("Failed to clear store for '{}': {}", collection.name, e),
-                )]));
+                return Ok(CallToolResult::error(vec![
+                    rmcp::model::ContentBlock::text(format!(
+                        "Failed to clear store for '{}': {}",
+                        collection.name, e
+                    )),
+                ]));
             }
 
             match kb_core::store::sync_collection(
@@ -51,9 +54,12 @@ impl KbMcpServer {
                     new_stores.insert(collection.name.clone(), mem);
                 }
                 Err(e) => {
-                    return Ok(CallToolResult::error(vec![rmcp::model::Content::text(
-                        format!("Failed to sync collection '{}': {}", collection.name, e),
-                    )]));
+                    return Ok(CallToolResult::error(vec![
+                        rmcp::model::ContentBlock::text(format!(
+                            "Failed to sync collection '{}': {}",
+                            collection.name, e
+                        )),
+                    ]));
                 }
             }
         }
@@ -69,8 +75,8 @@ impl KbMcpServer {
             "Reindexed {} documents across {} sections ({} changes synced)",
             doc_count, section_count, total_changes
         );
-        Ok(CallToolResult::success(vec![rmcp::model::Content::text(
-            msg,
-        )]))
+        Ok(CallToolResult::success(vec![
+            rmcp::model::ContentBlock::text(msg),
+        ]))
     }
 }

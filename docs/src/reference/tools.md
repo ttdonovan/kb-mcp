@@ -1,5 +1,5 @@
 ---
-description: Look up an MCP tool: every tool, its parameters and defaults, and the JSON it returns
+description: "Look up an MCP tool: every tool, its parameters and defaults, and the JSON it returns"
 ---
 
 # Tools
@@ -133,7 +133,8 @@ Appends a truncation notice if the limit is hit.
 ## kb_health
 
 Vault health diagnostics — checks document quality across collections. Flags
-missing frontmatter dates, untagged docs, stale content, stub documents,
+frontmatter that is not valid YAML, missing frontmatter dates, untagged docs,
+stale content, stub documents,
 orphaned notes (no inbound wiki-links), and broken wiki-links. Use `kb_digest`
 for coverage overview, `kb_health` for quality issues.
 
@@ -146,8 +147,14 @@ for coverage overview, `kb_health` for quality issues.
 | `min_words` | Number | No | Minimum word count for stub detection (default: 50) |
 
 **Returns:** JSON with `total_documents_checked`, `total_issues`, and per-collection
-arrays for each check: `missing_created`, `missing_updated`, `no_tags`, `stale`,
-`stubs`, `orphans`, `broken_links`.
+arrays for each check: `malformed_frontmatter`, `missing_created`, `missing_updated`,
+`no_tags`, `stale`, `stubs`, `orphans`, `broken_links`.
+
+`malformed_frontmatter` lists each document whose `---` block does not parse
+as YAML, with `path`, `title` and the parser's `error`; a common cause is an
+unquoted value containing `: `. Such a document is indexed without its
+frontmatter fields, and is not also listed under `missing_created`,
+`missing_updated` or `no_tags`.
 
 ## reindex
 

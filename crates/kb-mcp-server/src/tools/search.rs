@@ -50,8 +50,8 @@ impl KbMcpServer {
         );
 
         let json = kb_core::format::format_search(&params.query, &results, &index.documents);
-        Ok(CallToolResult::success(vec![rmcp::model::Content::text(
-            json,
-        )]))
+        Ok(CallToolResult::success(vec![
+            rmcp::model::ContentBlock::text(json),
+        ]))
     }
 }

@@ -1,5 +1,5 @@
 ---
-description: Read to install kb and kb-mcp: prebuilt release binaries and how to verify them, building a release from its tag, and building from a clone with or without hybrid search
+description: "Read to install kb and kb-mcp: prebuilt release binaries and how to verify them, building a release from its tag, and building from a clone with or without hybrid search"
 ---
 
 # Installation

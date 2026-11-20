@@ -43,12 +43,12 @@ impl KbMcpServer {
         if let Some(ref date_str) = params.created_after
             && chrono::NaiveDate::parse_from_str(date_str, "%Y-%m-%d").is_err()
         {
-            return Ok(CallToolResult::error(vec![rmcp::model::Content::text(
-                format!(
+            return Ok(CallToolResult::error(vec![
+                rmcp::model::ContentBlock::text(format!(
                     "Invalid created_after date '{}', expected YYYY-MM-DD format",
                     date_str
-                ),
-            )]));
+                )),
+            ]));
         }
 
         self.auto_reindex_stale_collections().await;
@@ -68,8 +68,8 @@ impl KbMcpServer {
             })
             .collect();
         let json = kb_core::format::format_query(&results);
-        Ok(CallToolResult::success(vec![rmcp::model::Content::text(
-            json,
-        )]))
+        Ok(CallToolResult::success(vec![
+            rmcp::model::ContentBlock::text(json),
+        ]))
     }
 }

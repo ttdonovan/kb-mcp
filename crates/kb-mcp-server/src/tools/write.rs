@@ -58,13 +58,13 @@ impl KbMcpServer {
             None => {
                 let available: Vec<&str> =
                     self.collections.iter().map(|c| c.name.as_str()).collect();
-                return Ok(CallToolResult::error(vec![rmcp::model::Content::text(
-                    format!(
+                return Ok(CallToolResult::error(vec![
+                    rmcp::model::ContentBlock::text(format!(
                         "Collection '{}' not found. Available: {}",
                         params.collection,
                         available.join(", ")
-                    ),
-                )]));
+                    )),
+                ]));
             }
         };
 
@@ -80,9 +80,12 @@ impl KbMcpServer {
             } else {
                 format!("Writable collections: {}", writable.join(", "))
             };
-            return Ok(CallToolResult::error(vec![rmcp::model::Content::text(
-                format!("Collection '{}' is read-only. {}", params.collection, hint),
-            )]));
+            return Ok(CallToolResult::error(vec![
+                rmcp::model::ContentBlock::text(format!(
+                    "Collection '{}' is read-only. {}",
+                    params.collection, hint
+                )),
+            ]));
         }
 
         let target_dir = if let Some(ref dir) = params.directory {
@@ -92,18 +95,21 @@ impl KbMcpServer {
                 .canonicalize()
                 .unwrap_or(collection.path.clone());
             if let Err(e) = std::fs::create_dir_all(&resolved) {
-                return Ok(CallToolResult::error(vec![rmcp::model::Content::text(
-                    format!("Failed to create directory '{}': {}", dir, e),
-                )]));
+                return Ok(CallToolResult::error(vec![
+                    rmcp::model::ContentBlock::text(format!(
+                        "Failed to create directory '{}': {}",
+                        dir, e
+                    )),
+                ]));
             }
             let canonical_resolved = resolved.canonicalize().unwrap_or(resolved);
             if !canonical_resolved.starts_with(&canonical_base) {
-                return Ok(CallToolResult::error(vec![rmcp::model::Content::text(
-                    format!(
+                return Ok(CallToolResult::error(vec![
+                    rmcp::model::ContentBlock::text(format!(
                         "Directory '{}' escapes the collection root. Use a relative path within the collection.",
                         dir
-                    ),
-                )]));
+                    )),
+                ]));
             }
             canonical_resolved
         } else {
@@ -147,9 +153,9 @@ impl KbMcpServer {
         let content = format!("{}# {}\n\n{}\n", frontmatter, params.title, params.body);
 
         if let Err(e) = std::fs::write(&file_path, &content) {
-            return Ok(CallToolResult::error(vec![rmcp::model::Content::text(
-                format!("Failed to write file: {}", e),
-            )]));
+            return Ok(CallToolResult::error(vec![
+                rmcp::model::ContentBlock::text(format!("Failed to write file: {}", e)),
+            ]));
         }
 
         let new_index = kb_core::index::Index::build(&self.collections);
@@ -182,8 +188,8 @@ impl KbMcpServer {
             &params.title,
             &params.tags,
         );
-        Ok(CallToolResult::success(vec![rmcp::model::Content::text(
-            json,
-        )]))
+        Ok(CallToolResult::success(vec![
+            rmcp::model::ContentBlock::text(json),
+        ]))
     }
 }

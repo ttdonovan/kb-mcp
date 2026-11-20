@@ -9,7 +9,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use rmcp::ServerHandler;
-use rmcp::model::{Implementation, ServerCapabilities, ServerInfo};
+use rmcp::model::{Implementation, ServerCapabilities, ServerConfig};
 use tokio::sync::RwLock;
 
 use kb_core::config::ResolvedCollection;
@@ -155,8 +155,8 @@ impl KbMcpServer {
 
 #[rmcp::tool_handler(router = self.tool_router)]
 impl ServerHandler for KbMcpServer {
-    fn get_info(&self) -> ServerInfo {
-        ServerInfo::new(ServerCapabilities::builder().enable_tools().build())
+    fn get_info(&self) -> ServerConfig {
+        ServerConfig::new(ServerCapabilities::builder().enable_tools().build())
             .with_server_info(Implementation::new("kb-mcp", env!("CARGO_PKG_VERSION")))
             .with_instructions(
                 "Knowledge base MCP server. Use list_sections to discover content areas, \
@@ -165,7 +165,7 @@ impl ServerHandler for KbMcpServer {
                  reindex to refresh after adding new files, kb_digest for vault summary \
                  and coverage overview, kb_query to filter by tags/status/dates, \
                  kb_export to export vault as a single markdown document, \
-                 and kb_health for document quality diagnostics (missing frontmatter, \
+                 and kb_health for document quality diagnostics (malformed or missing frontmatter, \
                  stale content, stubs, orphans, broken wiki-links)."
                     .to_string(),
             )

@@ -10,7 +10,7 @@ The product book: why kb-mcp exists, what it will and will not be, where it is g
 
 ## Writing a chapter
 
-- Frontmatter `description: ...` in one line, saying who should read the chapter and when. It becomes the chapter's line in `llms.txt`.
+- Frontmatter `description: "..."` in one line, in double quotes (`just book check` fails without them), saying who should read the chapter and when. It becomes the chapter's line in `llms.txt`.
 - Add it to `src/SUMMARY.md`; an unlisted file is not in the book.
 - Never hard-wrap prose in a new chapter, and keep an existing chapter's wrapping when editing it. No em dashes in new text; use a colon, a comma or a hyphen.
 - A new landscape page follows `src/landscape/process.md`.

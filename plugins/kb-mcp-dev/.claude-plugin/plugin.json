@@ -1,10 +1,15 @@
 {
   "name": "kb-mcp-dev",
-  "description": "For changing kb-mcp itself: adding a tool, reviewing changes to the code and the docs, working in a stack of pull requests, and making a release",
+  "description": "For changing kb-mcp itself: a kb-dev MCP server built from the checkout, adding a tool, reviewing changes to the code and the docs, working in a stack of pull requests, and making a release",
   "author": {
     "name": "ttdonovan"
   },
   "repository": "https://github.com/ttdonovan/kb-mcp",
   "license": "MIT",
-  "keywords": ["kb-mcp", "review", "release"]
+  "keywords": ["kb-mcp", "review", "release"],
+  "mcpServers": {
+    "kb-dev": {
+      "command": "${CLAUDE_PLUGIN_ROOT}/scripts/kb-mcp-debug.sh"
+    }
+  }
 }

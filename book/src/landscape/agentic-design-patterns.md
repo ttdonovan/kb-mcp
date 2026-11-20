@@ -1,5 +1,5 @@
 ---
-description: How the patterns in the Agentic Design Patterns book map onto kb-mcp, and which belong in other projects
+description: "How the patterns in the Agentic Design Patterns book map onto kb-mcp, and which belong in other projects"
 ---
 
 # Agentic Design Patterns

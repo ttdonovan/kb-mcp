@@ -17,7 +17,7 @@ Read cheaply first, in full only what matters:
 4. `get_document` only for the notes you need whole. It reads from disk, so it is always current.
 
 - `kb_query` filters by frontmatter (tag, status, created date, has sources) without a query.
-- `kb_health` lists quality problems: missing dates or tags, stale notes, stubs, orphans, broken wiki-links.
+- `kb_health` lists quality problems: frontmatter that is not valid YAML (its fields are then ignored), missing dates or tags, stale notes, stubs, orphans, broken wiki-links.
 - `kb_export` concatenates a collection into one markdown document, capped by `max_documents`.
 - `kb_write` creates a note, only in a collection with `writable: true`; others return an error. A file name already in use gets a numeric suffix (`-2`, `-3`).
 - The server notices added or removed files on its own. After editing existing files, call `reindex`.
@@ -43,5 +43,6 @@ kb-mcp finds its config by `--config`, then `KB_MCP_CONFIG`, then `./collections
 - The index lives in `cache_dir` (default `kb-mcp` in the user's cache folder, such as `~/.cache/kb-mcp` on Linux or `~/Library/Caches/kb-mcp` on macOS; `KB_MCP_CACHE_DIR` overrides it). Deleting it is safe: kb-mcp rebuilds it on the next start.
 - By default an index file is named by a hash of the collection's absolute path, so a moved project builds a new index. `index_names: Name` keeps the name stable, but then `cache_dir` must belong to this config alone.
 - Several servers can share a cache dir; one that finds another's index replaced reopens it.
+- Frontmatter is YAML: quote a value that contains `: ` (`title: "Setup: first steps"`), or the whole block is ignored. `kb_health` lists such documents under `malformed_frontmatter`.
 - `collections.ron` is often gitignored, as it holds local paths; commit an example beside it.
 - Semantic search needs a build with the `hybrid` feature and a local model; the release binaries are BM25 only. See https://ttdonovan.github.io/kb-mcp/usage/hybrid-search.html
