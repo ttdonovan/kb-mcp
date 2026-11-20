@@ -14,7 +14,7 @@ use kb_core::index::Index;
 use kb_core::search::SearchEngine;
 
 #[derive(Parser)]
-#[command(name = "kb", about = "Knowledge base CLI")]
+#[command(name = "kb", about = "Knowledge base CLI", version)]
 struct Cli {
     #[command(subcommand)]
     command: Command,
@@ -288,12 +288,7 @@ fn run(
                         .unwrap_or(&file_path);
                     println!(
                         "{}",
-                        format::format_write(
-                            &rel.to_string_lossy(),
-                            &coll_name,
-                            &title,
-                            &tags
-                        )
+                        format::format_write(&rel.to_string_lossy(), &coll_name, &title, &tags)
                     );
                 }
                 Err(e) => {
@@ -348,11 +343,7 @@ fn run(
         Command::Digest { collection } => {
             println!(
                 "{}",
-                format::format_digest(
-                    &index.documents,
-                    &index.sections,
-                    collection.as_deref()
-                )
+                format::format_digest(&index.documents, &index.sections, collection.as_deref())
             );
         }
         Command::Query {
@@ -394,21 +385,13 @@ fn run(
             let matching_count = index
                 .documents
                 .iter()
-                .filter(|doc| {
-                    collection
-                        .as_ref()
-                        .is_none_or(|f| doc.collection == *f)
-                })
+                .filter(|doc| collection.as_ref().is_none_or(|f| doc.collection == *f))
                 .count();
 
             let docs_with_bodies: Vec<(&kb_core::types::Document, String)> = index
                 .documents
                 .iter()
-                .filter(|doc| {
-                    collection
-                        .as_ref()
-                        .is_none_or(|f| doc.collection == *f)
-                })
+                .filter(|doc| collection.as_ref().is_none_or(|f| doc.collection == *f))
                 .take(max_documents)
                 .filter_map(|doc| {
                     let coll = collections.iter().find(|c| c.name == doc.collection)?;
@@ -429,8 +412,7 @@ fn run(
                 std::process::exit(1);
             }
 
-            let mut output =
-                format::format_export(&docs_with_bodies, collection.as_deref());
+            let mut output = format::format_export(&docs_with_bodies, collection.as_deref());
 
             if matching_count > max_documents {
                 output.push_str(&format!(

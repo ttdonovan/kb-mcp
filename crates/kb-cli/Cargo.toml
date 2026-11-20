@@ -5,6 +5,8 @@ edition.workspace = true
 description = "CLI for markdown knowledge bases"
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
+publish.workspace = true
 
 [[bin]]
 name = "kb"

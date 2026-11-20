@@ -47,13 +47,10 @@ pub fn matches_query(
     if let Some(after) = created_after
         && let Ok(after_date) = chrono::NaiveDate::parse_from_str(after, "%Y-%m-%d")
     {
-        let created = doc
-            .frontmatter
-            .get("created")
-            .and_then(|v| {
-                let s = format::yaml_value_to_string(v);
-                chrono::NaiveDate::parse_from_str(&s, "%Y-%m-%d").ok()
-            });
+        let created = doc.frontmatter.get("created").and_then(|v| {
+            let s = format::yaml_value_to_string(v);
+            chrono::NaiveDate::parse_from_str(&s, "%Y-%m-%d").ok()
+        });
         match created {
             Some(d) if d >= after_date => {}
             _ => return false,

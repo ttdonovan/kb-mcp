@@ -81,11 +81,7 @@ impl KbMcpServer {
         for collection in self.collections.iter() {
             let hashes_file = kb_core::store::hashes_path(&self.cache_dir, collection);
 
-            let dir_mtime = collection
-                .path
-                .metadata()
-                .and_then(|m| m.modified())
-                .ok();
+            let dir_mtime = collection.path.metadata().and_then(|m| m.modified()).ok();
             let hashes_mtime = hashes_file.metadata().and_then(|m| m.modified()).ok();
 
             let dir_changed = match (dir_mtime, hashes_mtime) {
@@ -140,15 +136,10 @@ impl KbMcpServer {
                         collection.name,
                         changes
                     );
-                    self.search_engine
-                        .replace_store(&collection.name, mem);
+                    self.search_engine.replace_store(&collection.name, mem);
                 }
                 Err(e) => {
-                    tracing::warn!(
-                        "auto-reindex: failed to sync '{}': {}",
-                        collection.name,
-                        e
-                    );
+                    tracing::warn!("auto-reindex: failed to sync '{}': {}", collection.name, e);
                 }
             }
         }

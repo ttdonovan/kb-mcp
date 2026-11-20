@@ -1,0 +1,30 @@
+# One version, one vX.Y.Z tag, one GitHub Release and one CHANGELOG.md for the whole workspace.
+[workspace]
+# Not on crates.io: versions come from git tags, and cargo publish is skipped
+git_only = true
+publish = false
+# Release only when the release PR is merged
+release_always = false
+changelog_path = "./CHANGELOG.md"
+changelog_update = false
+git_tag_enable = false
+git_release_enable = false
+
+# The release is named after the server; the other crates' commits are folded into its changelog.
+[[package]]
+name = "kb-mcp-server"
+version_group = "kb"
+changelog_update = true
+changelog_include = ["kb-core", "kb-cli"]
+git_tag_enable = true
+git_tag_name = "v{{ version }}"
+git_release_enable = true
+git_release_name = "v{{ version }}"
+
+[[package]]
+name = "kb-core"
+version_group = "kb"
+
+[[package]]
+name = "kb-cli"
+version_group = "kb"

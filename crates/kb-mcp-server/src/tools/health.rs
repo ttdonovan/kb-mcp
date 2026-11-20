@@ -45,8 +45,7 @@ impl KbMcpServer {
         if let Some(ref coll) = params.collection
             && !self.collections.iter().any(|c| c.name == *coll)
         {
-            let available: Vec<&str> =
-                self.collections.iter().map(|c| c.name.as_str()).collect();
+            let available: Vec<&str> = self.collections.iter().map(|c| c.name.as_str()).collect();
             return Ok(CallToolResult::error(vec![rmcp::model::Content::text(
                 format!(
                     "Collection '{}' not found. Available: {}",

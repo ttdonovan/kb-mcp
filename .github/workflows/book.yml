@@ -7,43 +7,62 @@ on:
       - "book/**"
       - "docs/**"
       - "agents/researcher/README.md"
+  # Build only, to catch a broken book before merge
+  pull_request:
+    paths:
+      - "book/**"
+      - "docs/**"
+      - "agents/researcher/README.md"
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: true
+
+env:
+  MDBOOK_VERSION: v0.5.4
+  MDBOOK_MERMAID_VERSION: v0.17.1
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      # Actions are pinned by commit SHA; the tag is only a comment.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Install mdBook
-        uses: taiki-e/install-action@v2
-        with:
-          tool: mdbook,mdbook-mermaid
+        run: |
+          bin="$HOME/.local/bin"
+          mkdir -p "$bin"
+          curl -fsSL "https://github.com/rust-lang/mdBook/releases/download/$MDBOOK_VERSION/mdbook-$MDBOOK_VERSION-x86_64-unknown-linux-gnu.tar.gz" | tar -xz -C "$bin"
+          curl -fsSL "https://github.com/badboy/mdbook-mermaid/releases/download/$MDBOOK_MERMAID_VERSION/mdbook-mermaid-$MDBOOK_MERMAID_VERSION-x86_64-unknown-linux-gnu.tar.gz" | tar -xz -C "$bin"
+          echo "$bin" >> "$GITHUB_PATH"
 
       - name: Build book
         run: mdbook build book
 
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+      - if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: book/book
 
   deploy:
     needs: build
-    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
