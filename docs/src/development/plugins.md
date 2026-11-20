@@ -31,6 +31,7 @@ A plugin cannot reach files outside its own folder, so the skill links to this b
 | `/kb-mcp-dev:add-tool` | add an MCP tool with its CLI command, tests and docs |
 | `/kb-mcp-dev:review-code [branch]` | hand a change to code, scripts, CI or plugins to the read-only `code-reviewer` |
 | `/kb-mcp-dev:review-docs [branch]` | hand a change to the docs to the read-only `docs-reviewer` |
+| `/kb-mcp-dev:test-with-kb-dev` | test a change through the `kb-dev` server from the session: every tool, the error paths and automatic reindexing |
 | `/kb-mcp-dev:work-in-a-stack` | split a change into a stack of pull requests with `gh stack`, and review each layer |
 | `/kb-mcp-dev:release` | check, merge and confirm a release; only you can start it |
 | `kb-mcp-dev:mdbook-docs` | general mdBook and Mermaid help; for either book, `docs/CLAUDE.md` or `book/CLAUDE.md` holds the project's rules and comes first |
