@@ -14,7 +14,7 @@ use kb_core::index::Index;
 use kb_core::search::SearchEngine;
 
 #[derive(Parser)]
-#[command(name = "kb", about = "Knowledge base CLI")]
+#[command(name = "kb", about = "Knowledge base CLI", version)]
 struct Cli {
     #[command(subcommand)]
     command: Command,

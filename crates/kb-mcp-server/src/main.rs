@@ -13,6 +13,15 @@ use crate::server::KbMcpServer;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // The only flag; anything else starts the server, as MCP clients pass no arguments.
+    if std::env::args()
+        .nth(1)
+        .is_some_and(|a| a == "--version" || a == "-V")
+    {
+        println!("kb-mcp {}", env!("CARGO_PKG_VERSION"));
+        return Ok(());
+    }
+
     // MCP mode — stdout is the JSON-RPC transport, so all logs must go to stderr.
     tracing_subscriber::fmt()
         .with_env_filter(
