@@ -11,11 +11,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 
 - add --version to kb and kb-mcp.
+- add opt-in index_names: Name, so a moved config reuses its index.
+- add KB_MCP_CACHE_DIR, and resolve a relative cache_dir against the config file.
 - upgrade rmcp to 1.5, add memvid-core hybrid dep, fix tool_handler router binding
 
 ### Fixed
 
+- *(deps)* update crates with advisories, and record why the rest do not apply.
 - auto-reindex a collection when another server replaced its .mv2.
+- build .mv2 stores in a temp file and rename into place, open read-only.
 - surface root-level docs via "(root)" section; make explicit reindex a full rebuild
 
 ### Other
