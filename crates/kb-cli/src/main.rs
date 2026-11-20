@@ -4,14 +4,17 @@
 //! and script searches without needing an MCP client. All output is JSON to
 //! stdout, errors to stderr.
 
-use std::path::PathBuf;
+use std::fmt::Write as _;
+use std::path::{Path, PathBuf};
+use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
 
+use kb_core::AppContext;
 use kb_core::config::ResolvedCollection;
 use kb_core::format;
 use kb_core::index::Index;
-use kb_core::search::SearchEngine;
+use kb_core::types::Document;
 
 #[derive(Parser)]
 #[command(name = "kb", about = "Knowledge base CLI", version)]
@@ -131,45 +134,33 @@ enum Command {
     },
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> ExitCode {
     let cli = Cli::parse();
-    let ctx = kb_core::init(cli.config.as_deref())?;
-    run(
-        cli.command,
-        &ctx.index,
-        &ctx.search_engine,
-        &ctx.collections,
-        &ctx.cache_dir,
-        #[cfg(feature = "hybrid")]
-        &ctx.embedder,
-    );
-    Ok(())
+    let ctx = match kb_core::init(cli.config.as_deref()) {
+        Ok(ctx) => ctx,
+        Err(e) => {
+            eprintln!("Error: {e:?}");
+            return ExitCode::FAILURE;
+        }
+    };
+    match run(cli.command, &ctx) {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(message) => {
+            eprintln!("{message}");
+            ExitCode::FAILURE
+        }
+    }
 }
 
-fn run(
-    command: Command,
-    index: &Index,
-    search_engine: &SearchEngine,
-    collections: &[ResolvedCollection],
-    cache_dir: &std::path::Path,
-    #[cfg(feature = "hybrid")] embedder: &memvid_core::LocalTextEmbedder,
-) {
+/// Run one command. An error is the message to print to stderr before
+/// exiting with status 1.
+fn run(command: Command, ctx: &AppContext) -> Result<(), String> {
+    let index = &ctx.index;
     match command {
-        Command::ListSections => {
-            println!("{}", format::format_sections(&index.sections));
-        }
+        Command::ListSections => println!("{}", format::format_sections(&index.sections)),
         Command::GetDocument { path } => {
-            let doc = index
-                .find_by_path(&path)
-                .or_else(|| index.find_by_title(&path));
-
-            if let Some(doc) = doc {
-                println!("{}", format::format_document(doc, true))
-            } else {
-                eprintln!("Document not found: {path}");
-                std::process::exit(1);
-            }
+            let doc = find(index, &path)?;
+            println!("{}", format::format_document(doc, true));
         }
         Command::Search {
             query,
@@ -177,7 +168,7 @@ fn run(
             scope,
             max_results,
         } => {
-            let results = search_engine.search(
+            let results = ctx.search_engine.search(
                 &index.documents,
                 &query,
                 collection.as_deref(),
@@ -189,20 +180,9 @@ fn run(
                 format::format_search(&query, &results, &index.documents)
             );
         }
-        Command::Context { path } => {
-            let doc = index
-                .find_by_path(&path)
-                .or_else(|| index.find_by_title(&path));
-
-            if let Some(doc) = doc {
-                println!("{}", format::format_context(doc))
-            } else {
-                eprintln!("Document not found: {path}");
-                std::process::exit(1);
-            }
-        }
+        Command::Context { path } => println!("{}", format::format_context(find(index, &path)?)),
         Command::Write {
-            collection: coll_name,
+            collection,
             title,
             tags,
             body,
@@ -210,234 +190,277 @@ fn run(
             source,
             directory,
             filename,
-        } => {
-            let collection = collections.iter().find(|c| c.name == coll_name);
-            let collection = if let Some(c) = collection {
-                c
-            } else {
-                eprintln!("Collection '{coll_name}' not found");
-                std::process::exit(1);
-            };
-
-            if !collection.writable {
-                eprintln!("Collection '{coll_name}' is read-only");
-                std::process::exit(1);
-            }
-
-            let tags: Vec<String> = tags
-                .map(|t| t.split(',').map(|s| s.trim().to_string()).collect())
-                .unwrap_or_default();
-
-            let target_dir = if let Some(ref dir) = directory {
-                let resolved = collection.path.join(dir);
-                let canonical_base = collection
-                    .path
-                    .canonicalize()
-                    .unwrap_or(collection.path.clone());
-                if let Err(e) = std::fs::create_dir_all(&resolved) {
-                    eprintln!("Failed to create directory '{dir}': {e}");
-                    std::process::exit(1);
-                }
-                let canonical_resolved = resolved.canonicalize().unwrap_or(resolved);
-                if !canonical_resolved.starts_with(&canonical_base) {
-                    eprintln!("Directory '{dir}' escapes the collection root");
-                    std::process::exit(1);
-                }
-                canonical_resolved
-            } else {
-                collection.path.clone()
-            };
-
-            let today = chrono::Local::now().format("%Y-%m-%d").to_string();
-            let base_name = if let Some(ref name) = filename {
-                if name.ends_with(".md") {
-                    name.clone()
-                } else {
-                    format!("{name}.md")
-                }
-            } else {
-                let slug = kb_core::write::slugify_title(&title);
-                format!("{today}-{slug}.md")
-            };
-            let file_path = kb_core::write::find_available_path(&target_dir, &base_name);
-
-            let mut frontmatter = String::new();
-            frontmatter.push_str("---\n");
-            if !tags.is_empty() {
-                frontmatter.push_str(&format!("tags: [{}]\n", tags.join(", ")));
-            }
-            frontmatter.push_str(&format!("created: {today}\n"));
-            frontmatter.push_str(&format!("updated: {today}\n"));
-            if let Some(s) = &status {
-                frontmatter.push_str(&format!("status: {s}\n"));
-            }
-            if let Some(s) = &source {
-                frontmatter.push_str(&format!("source: {s}\n"));
-            }
-            frontmatter.push_str("---\n\n");
-
-            let content = format!("{frontmatter}# {title}\n\n{body}\n");
-
-            match std::fs::write(&file_path, &content) {
-                Ok(()) => {
-                    let rel = file_path
-                        .strip_prefix(&collection.path)
-                        .unwrap_or(&file_path);
-                    println!(
-                        "{}",
-                        format::format_write(&rel.to_string_lossy(), &coll_name, &title, &tags)
-                    );
-                }
-                Err(e) => {
-                    eprintln!("Failed to write: {e}");
-                    std::process::exit(1);
-                }
-            }
-        }
-        Command::Reindex => {
-            let new_index = Index::build(collections);
-
-            // Explicit reindex forces a full store rebuild — clearing each
-            // store and sidecar repairs state that incremental sync (which
-            // trusts the sidecar hashes) can never fix. Matches the MCP
-            // server's reindex tool.
-            let mut total_changes = 0;
-            for collection in collections {
-                if let Err(e) = kb_core::store::clear_collection_store(cache_dir, collection) {
-                    eprintln!("Failed to clear store for '{}': {}", collection.name, e);
-                    std::process::exit(1);
-                }
-
-                let current_hashes = new_index
-                    .content_hashes
-                    .get(&collection.name)
-                    .cloned()
-                    .unwrap_or_default();
-
-                match kb_core::store::sync_collection(
-                    cache_dir,
-                    collection,
-                    &current_hashes,
-                    &new_index.documents,
-                    #[cfg(feature = "hybrid")]
-                    embedder,
-                ) {
-                    Ok((_, changes)) => total_changes += changes,
-                    Err(e) => {
-                        eprintln!("Failed to sync collection '{}': {}", collection.name, e);
-                        std::process::exit(1);
-                    }
-                }
-            }
-
-            println!(
-                "Reindexed {} documents across {} sections ({} changes synced)",
-                new_index.documents.len(),
-                new_index.sections.len(),
-                total_changes
-            );
-        }
-        Command::Digest { collection } => {
-            println!(
-                "{}",
-                format::format_digest(&index.documents, &index.sections, collection.as_deref())
-            );
-        }
+        } => write(
+            &ctx.collections,
+            &WriteArgs {
+                coll_name: collection,
+                title,
+                tags: tags
+                    .map(|t| t.split(',').map(|s| s.trim().to_string()).collect())
+                    .unwrap_or_default(),
+                body,
+                status,
+                source,
+                directory,
+                filename,
+            },
+        )?,
+        Command::Reindex => reindex(ctx)?,
+        Command::Digest { collection } => println!(
+            "{}",
+            format::format_digest(&index.documents, &index.sections, collection.as_deref())
+        ),
         Command::Query {
             tag,
             status,
             created_after,
             collection,
             has_sources,
-        } => {
-            if let Some(ref date_str) = created_after
-                && chrono::NaiveDate::parse_from_str(date_str, "%Y-%m-%d").is_err()
-            {
-                eprintln!("Invalid created_after date '{date_str}', expected YYYY-MM-DD format");
-                std::process::exit(1);
-            }
-            let results: Vec<&kb_core::types::Document> = index
-                .documents
-                .iter()
-                .filter(|doc| {
-                    kb_core::query::matches_query(
-                        doc,
-                        collection.as_deref(),
-                        tag.as_deref(),
-                        status.as_deref(),
-                        created_after.as_deref(),
-                        has_sources,
-                    )
-                })
-                .collect();
-            println!("{}", format::format_query(&results));
-        }
+        } => query(
+            index,
+            &QueryArgs {
+                tag,
+                status,
+                created_after,
+                collection,
+                has_sources,
+            },
+        )?,
         Command::Export {
             collection,
             max_documents,
-        } => {
-            let matching_count = index
-                .documents
-                .iter()
-                .filter(|doc| collection.as_ref().is_none_or(|f| doc.collection == *f))
-                .count();
-
-            let docs_with_bodies: Vec<(&kb_core::types::Document, String)> = index
-                .documents
-                .iter()
-                .filter(|doc| collection.as_ref().is_none_or(|f| doc.collection == *f))
-                .take(max_documents)
-                .filter_map(|doc| {
-                    let coll = collections.iter().find(|c| c.name == doc.collection)?;
-                    let file_path = coll.path.join(&doc.path);
-                    let body = format::read_document_body(&file_path)?;
-                    Some((doc, body))
-                })
-                .collect();
-
-            if docs_with_bodies.is_empty() {
-                eprintln!(
-                    "No documents found{}",
-                    collection
-                        .as_ref()
-                        .map(|c| format!(" in collection '{c}'"))
-                        .unwrap_or_default()
-                );
-                std::process::exit(1);
-            }
-
-            let mut output = format::format_export(&docs_with_bodies, collection.as_deref());
-
-            if matching_count > max_documents {
-                output.push_str(&format!(
-                    "... truncated: showing {} of {} documents\n",
-                    docs_with_bodies.len(),
-                    matching_count
-                ));
-            }
-
-            print!("{output}");
-        }
+        } => export(ctx, collection.as_deref(), max_documents)?,
         Command::Health {
             collection,
             stale_days,
             min_words,
-        } => {
-            if let Some(ref coll) = collection
-                && !collections.iter().any(|c| c.name == *coll)
-            {
-                eprintln!("Collection '{coll}' not found");
-                std::process::exit(1);
-            }
-            println!(
-                "{}",
-                format::format_health(
-                    &index.documents,
-                    collection.as_deref(),
-                    stale_days,
-                    min_words,
-                )
-            );
-        }
+        } => health(ctx, collection.as_deref(), stale_days, min_words)?,
     }
+    Ok(())
+}
+
+/// The `query` command's filters.
+struct QueryArgs {
+    tag: Option<String>,
+    status: Option<String>,
+    created_after: Option<String>,
+    collection: Option<String>,
+    has_sources: bool,
+}
+
+fn query(index: &Index, args: &QueryArgs) -> Result<(), String> {
+    if let Some(ref date_str) = args.created_after
+        && chrono::NaiveDate::parse_from_str(date_str, "%Y-%m-%d").is_err()
+    {
+        return Err(format!(
+            "Invalid created_after date '{date_str}', expected YYYY-MM-DD format"
+        ));
+    }
+    let results: Vec<&Document> = index
+        .documents
+        .iter()
+        .filter(|doc| {
+            kb_core::query::matches_query(
+                doc,
+                args.collection.as_deref(),
+                args.tag.as_deref(),
+                args.status.as_deref(),
+                args.created_after.as_deref(),
+                args.has_sources,
+            )
+        })
+        .collect();
+    println!("{}", format::format_query(&results));
+    Ok(())
+}
+
+fn health(
+    ctx: &AppContext,
+    collection: Option<&str>,
+    stale_days: u32,
+    min_words: u32,
+) -> Result<(), String> {
+    if let Some(coll) = collection
+        && !ctx.collections.iter().any(|c| c.name == coll)
+    {
+        return Err(format!("Collection '{coll}' not found"));
+    }
+    println!(
+        "{}",
+        format::format_health(&ctx.index.documents, collection, stale_days, min_words)
+    );
+    Ok(())
+}
+
+/// A document by path, else by title.
+fn find<'a>(index: &'a Index, path: &str) -> Result<&'a Document, String> {
+    index
+        .find_by_path(path)
+        .or_else(|| index.find_by_title(path))
+        .ok_or_else(|| format!("Document not found: {path}"))
+}
+
+/// The `write` command's arguments, with tags already split.
+struct WriteArgs {
+    coll_name: String,
+    title: String,
+    tags: Vec<String>,
+    body: String,
+    status: Option<String>,
+    source: Option<String>,
+    directory: Option<String>,
+    filename: Option<String>,
+}
+
+fn write(collections: &[ResolvedCollection], args: &WriteArgs) -> Result<(), String> {
+    let coll_name = &args.coll_name;
+    let collection = collections
+        .iter()
+        .find(|c| c.name == *coll_name)
+        .ok_or_else(|| format!("Collection '{coll_name}' not found"))?;
+
+    if !collection.writable {
+        return Err(format!("Collection '{coll_name}' is read-only"));
+    }
+
+    let target_dir = if let Some(ref dir) = args.directory {
+        let resolved = collection.path.join(dir);
+        let canonical_base = collection
+            .path
+            .canonicalize()
+            .unwrap_or_else(|_| collection.path.clone());
+        std::fs::create_dir_all(&resolved)
+            .map_err(|e| format!("Failed to create directory '{dir}': {e}"))?;
+        let canonical_resolved = resolved.canonicalize().unwrap_or(resolved);
+        if !canonical_resolved.starts_with(&canonical_base) {
+            return Err(format!("Directory '{dir}' escapes the collection root"));
+        }
+        canonical_resolved
+    } else {
+        collection.path.clone()
+    };
+
+    let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+    let base_name = args.filename.as_ref().map_or_else(
+        || {
+            let slug = kb_core::write::slugify_title(&args.title);
+            format!("{today}-{slug}.md")
+        },
+        |name| {
+            if Path::new(name)
+                .extension()
+                .is_some_and(|ext| ext.eq_ignore_ascii_case("md"))
+            {
+                name.clone()
+            } else {
+                format!("{name}.md")
+            }
+        },
+    );
+    let file_path = kb_core::write::find_available_path(&target_dir, &base_name);
+
+    // Writing to a String cannot fail.
+    let mut frontmatter = String::from("---\n");
+    if !args.tags.is_empty() {
+        let _ = writeln!(frontmatter, "tags: [{}]", args.tags.join(", "));
+    }
+    let _ = writeln!(frontmatter, "created: {today}");
+    let _ = writeln!(frontmatter, "updated: {today}");
+    if let Some(s) = &args.status {
+        let _ = writeln!(frontmatter, "status: {s}");
+    }
+    if let Some(s) = &args.source {
+        let _ = writeln!(frontmatter, "source: {s}");
+    }
+    frontmatter.push_str("---\n\n");
+
+    let content = format!("{frontmatter}# {}\n\n{}\n", args.title, args.body);
+    std::fs::write(&file_path, &content).map_err(|e| format!("Failed to write: {e}"))?;
+
+    let rel = file_path
+        .strip_prefix(&collection.path)
+        .unwrap_or(&file_path);
+    println!(
+        "{}",
+        format::format_write(&rel.to_string_lossy(), coll_name, &args.title, &args.tags)
+    );
+    Ok(())
+}
+
+fn reindex(ctx: &AppContext) -> Result<(), String> {
+    let new_index = Index::build(&ctx.collections);
+
+    // Explicit reindex forces a full store rebuild — clearing each
+    // store and sidecar repairs state that incremental sync (which
+    // trusts the sidecar hashes) can never fix. Matches the MCP
+    // server's reindex tool.
+    let mut total_changes: usize = 0;
+    for collection in &ctx.collections {
+        kb_core::store::clear_collection_store(&ctx.cache_dir, collection)
+            .map_err(|e| format!("Failed to clear store for '{}': {}", collection.name, e))?;
+
+        let current_hashes = new_index
+            .content_hashes
+            .get(&collection.name)
+            .cloned()
+            .unwrap_or_default();
+
+        let (_, changes) = kb_core::store::sync_collection(
+            &ctx.cache_dir,
+            collection,
+            &current_hashes,
+            &new_index.documents,
+            #[cfg(feature = "hybrid")]
+            &ctx.embedder,
+        )
+        .map_err(|e| format!("Failed to sync collection '{}': {}", collection.name, e))?;
+        total_changes = total_changes.saturating_add(changes);
+    }
+
+    println!(
+        "Reindexed {} documents across {} sections ({} changes synced)",
+        new_index.documents.len(),
+        new_index.sections.len(),
+        total_changes
+    );
+    Ok(())
+}
+
+fn export(ctx: &AppContext, collection: Option<&str>, max_documents: usize) -> Result<(), String> {
+    let in_collection = |doc: &&Document| collection.is_none_or(|f| doc.collection == f);
+    let matching_count = ctx.index.documents.iter().filter(in_collection).count();
+
+    let docs_with_bodies: Vec<(&Document, String)> = ctx
+        .index
+        .documents
+        .iter()
+        .filter(in_collection)
+        .take(max_documents)
+        .filter_map(|doc| {
+            let coll = ctx.collections.iter().find(|c| c.name == doc.collection)?;
+            let body = format::read_document_body(&coll.path.join(&doc.path))?;
+            Some((doc, body))
+        })
+        .collect();
+
+    if docs_with_bodies.is_empty() {
+        return Err(format!(
+            "No documents found{}",
+            collection
+                .map(|c| format!(" in collection '{c}'"))
+                .unwrap_or_default()
+        ));
+    }
+
+    let mut output = format::format_export(&docs_with_bodies, collection);
+    if matching_count > max_documents {
+        // Writing to a String cannot fail.
+        let _ = writeln!(
+            output,
+            "... truncated: showing {} of {matching_count} documents",
+            docs_with_bodies.len()
+        );
+    }
+    print!("{output}");
+    Ok(())
 }

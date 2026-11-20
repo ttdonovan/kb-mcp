@@ -1448,7 +1448,6 @@ dependencies = [
  "kb-core",
  "memvid-core",
  "serde_json",
- "tokio",
 ]
 
 [[package]]
