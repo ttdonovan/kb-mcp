@@ -61,6 +61,9 @@ impl KbMcpServer {
     /// file's mtime. If the directory is newer, files were added or removed
     /// since the last sync. This is one `stat()` per collection — microseconds
     /// for typical vaults. Deep content edits still need explicit `reindex`.
+    ///
+    /// A collection is also stale when another server sharing the cache dir
+    /// replaced its `.mv2`; the resync then only reopens it, no re-ingest.
     pub(crate) async fn auto_reindex_stale_collections(&self) {
         // Debounce: skip if less than COOLDOWN seconds since last check
         let now = std::time::SystemTime::now()
@@ -85,11 +88,17 @@ impl KbMcpServer {
                 .ok();
             let hashes_mtime = hashes_file.metadata().and_then(|m| m.modified()).ok();
 
-            let is_stale = match (dir_mtime, hashes_mtime) {
+            let dir_changed = match (dir_mtime, hashes_mtime) {
                 (Some(dir_t), Some(hash_t)) => dir_t > hash_t,
                 (Some(_), None) => true, // no sidecar yet
                 _ => false,
             };
+            // Another server sharing the cache dir synced; the sidecar no longer tells us.
+            let is_stale = dir_changed
+                || self.search_engine.store_replaced(
+                    &collection.name,
+                    &kb_core::store::mv2_path(&self.cache_dir, collection),
+                );
 
             if is_stale {
                 stale_collections.push(collection.name.clone());

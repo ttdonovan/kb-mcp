@@ -126,6 +126,36 @@ fn empty_collection_resync_does_not_truncate_open_store() {
 }
 
 #[test]
+fn server_detects_store_replaced_by_another_and_reloads_without_reingest() {
+    let (root, cache_dir, collection) = fixture("replaced", true);
+    let mv2 = store::mv2_path(&cache_dir, &collection);
+
+    // Server B loads the store.
+    let (_, held, _) = sync(&cache_dir, &collection);
+    let b = SearchEngine::new(HashMap::from([("notes".to_string(), held)]));
+    assert!(!b.store_replaced("notes", &mv2));
+
+    // Server A syncs a new document.
+    std::fs::write(
+        collection.path.join("lifetimes.md"),
+        "# Lifetimes\n\nLifetimes annotate how long references stay valid.\n",
+    )
+    .unwrap();
+    let (_, _a, changes) = sync(&cache_dir, &collection);
+    assert_eq!(changes, 1);
+    assert!(b.store_replaced("notes", &mv2));
+
+    // B reloads: A already ingested, so B only reopens.
+    let (index, reloaded, changes) = sync(&cache_dir, &collection);
+    assert_eq!(changes, 0, "no re-ingest of a store another server built");
+    b.replace_store("notes", reloaded);
+    assert!(!b.store_replaced("notes", &mv2));
+    assert!(finds(&b, &index, "references valid", "lifetimes.md"));
+
+    std::fs::remove_dir_all(&root).ok();
+}
+
+#[test]
 fn missing_store_with_current_sidecar_is_rebuilt() {
     let (root, cache_dir, collection) = fixture("missing", true);
 
