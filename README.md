@@ -195,25 +195,6 @@ just docs check   # fail on a warning, an empty chapter or a broken link
 just book         # build the product book into target/book/html/ (also: serve, check)
 ```
 
-## Prerequisites
-
-```sh
-cargo install mdbook
-cargo install mdbook-mermaid
-```
-
-### Build and serve
-
-```sh
-just book-build   # Build to book/book/
-just book-serve   # Serve with live reload at http://localhost:3000
-```
-
-The book includes usage guides, tool reference, RON schema docs, and
-architecture diagrams. Source pages live in `book/src/` — some are
-`{{#include}}` wrappers that pull content from `docs/` so that
-documentation has a single source of truth.
-
 ## Claude Code Plugin
 
 The `kb-mcp` plugin teaches Claude Code to search and read a knowledge base through kb-mcp's tools, and to set kb-mcp up for a project:

@@ -4,6 +4,7 @@
 
 # Usage
 
+- [Installation](usage/installation.md)
 - [Configuration](usage/configuration.md)
 - [MCP Server](usage/mcp-server.md)
 - [CLI](usage/cli.md)

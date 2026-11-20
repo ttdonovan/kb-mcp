@@ -6,7 +6,7 @@ description: Start here. What kb-mcp is, how to read this book as an agent or a 
 
 kb-mcp is an MCP server and CLI for markdown knowledge bases. It indexes folders of markdown ("collections", defined in `collections.ron`) into a BM25 search index, or BM25 plus vectors with the `hybrid` feature, and serves them to agents as MCP tools. The `kb` CLI has a command for every tool, with the same JSON output.
 
-This is the technical book: how to install, configure and use kb-mcp, every tool and config field, and how to work on it. It is published at <https://ttdonovan.github.io/kb-mcp/>, built from `main`, so it can describe changes not yet released; the docs for a release are in that tag's `docs/src/`. Why kb-mcp exists and how it compares with other projects is [the product book](https://ttdonovan.github.io/kb-mcp/product/).
+This is the technical book: how to install, configure and use kb-mcp, every tool and config field, and how to work on it. It is published at <https://ttdonovan.github.io/kb-mcp/>, built from `main`, so it can describe changes not yet released; the docs for a release are in that tag's `docs/src/` (`book/src/` for v0.3.0 and earlier). Why kb-mcp exists and how it compares with other projects is [the product book](https://ttdonovan.github.io/kb-mcp/product/).
 
 ## For agents
 
@@ -22,6 +22,7 @@ In a checkout, `just docs` writes the same files to `target/docs/html/`, matchin
 
 | If you want to | Read |
 |---|---|
+| Install `kb` and `kb-mcp` | [Installation](usage/installation.md) |
 | Point kb-mcp at your markdown | [Configuration](usage/configuration.md) |
 | Use it from an agent | [MCP Server](usage/mcp-server.md), then [Tools](reference/tools.md) |
 | Use it from a shell or a script | [CLI](usage/cli.md) |

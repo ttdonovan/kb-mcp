@@ -27,5 +27,6 @@ while IFS= read -r empty; do
     fail=1
 done < <(find "target/$book/html" -name '*.md' -size -2c)
 
-[ "$fail" = 0 ] && echo "The $book book builds, and every link leads somewhere."
+label=technical; [ "$book" = book ] && label=product
+[ "$fail" = 0 ] && echo "The $label book builds, and every link leads somewhere."
 exit "$fail"

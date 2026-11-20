@@ -79,7 +79,7 @@ project works — using the very tool the project builds.
 
 ## Getting Started
 
-Prebuilt binaries for Linux and macOS are on each [GitHub Release](https://github.com/ttdonovan/kb-mcp/releases). Installing, configuring collections and registering the MCP server are in the technical book: start with [Configuration](https://ttdonovan.github.io/kb-mcp/usage/configuration.html) and [MCP Server](https://ttdonovan.github.io/kb-mcp/usage/mcp-server.html).
+Prebuilt binaries for Linux and macOS are on each [GitHub Release](https://github.com/ttdonovan/kb-mcp/releases). Installing, configuring collections and registering the MCP server are in the technical book: start with [Installation](https://ttdonovan.github.io/kb-mcp/usage/installation.html), then [Configuration](https://ttdonovan.github.io/kb-mcp/usage/configuration.html) and [MCP Server](https://ttdonovan.github.io/kb-mcp/usage/mcp-server.html).
 
 ## Read Next
 

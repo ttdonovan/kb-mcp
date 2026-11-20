@@ -38,7 +38,8 @@ BM25 index — no separate database or service.
 ### 1. Install with hybrid feature
 
 ```sh
-cargo install --path . --features hybrid
+cargo install --path crates/kb-mcp-server --features hybrid
+cargo install --path crates/kb-cli --features hybrid
 ```
 
 This pulls in ONNX Runtime and the HNSW library. Build time is longer
@@ -85,7 +86,7 @@ kb-mcp search --query "memory architecture" --collection vault
 If you don't need vector search, the default build stays lightweight:
 
 ```sh
-cargo install --path .   # BM25 only, no ONNX dependency
+cargo install --path crates/kb-mcp-server   # BM25 only, no ONNX dependency
 ```
 
 The same search queries work — they just use BM25 keyword matching

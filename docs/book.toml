@@ -23,7 +23,7 @@ renderers = ["html"]
 default-theme = "coal"
 preferred-dark-theme = "coal"
 git-repository-url = "https://github.com/ttdonovan/kb-mcp"
-edit-url-template = "https://github.com/ttdonovan/kb-mcp/edit/main/{path}"
+edit-url-template = "https://github.com/ttdonovan/kb-mcp/edit/main/docs/{path}"
 additional-js = ["mermaid.min.js", "mermaid-init.js"]
 
 [output.html.fold]

@@ -44,6 +44,7 @@ A branch that changes both gets both. A reviewer advises; it does not approve. T
 | `crates/kb-core/src/config.rs` | `docs/src/reference/ron-schema.md`, `docs/src/usage/configuration.md`, `collections.example.ron`, the Configuration section of `README.md`, the user skill |
 | `crates/kb-core/src/store.rs`, `search.rs`, `index.rs` | `docs/src/development/architecture.md` |
 | `justfile` | the commands in `CLAUDE.md`, the Development section of `README.md` |
+| `.github/workflows/release-binaries.yml` | `docs/src/usage/installation.md`, the Install section of `README.md` |
 | `scripts/ci/`, `.github/`, `release-plz.toml`, `.cargo/audit.toml` | `CONTRIBUTING.md` |
 | `plugins/`, `.claude-plugin/` | [Claude Code Plugins](plugins.md) |
 | A feature built, or a tool added, that a user would notice | `book/src/introduction.md`, and `book/src/roadmap.md` if it was planned there |

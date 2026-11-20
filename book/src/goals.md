@@ -60,7 +60,7 @@ file formats.
 rename, move, or delete existing documents. Vault management stays in the
 editor (Obsidian, VS Code, etc.).
 
-**Not a vector database.** Even with hybrid search planned, the primary
+**Not a vector database.** Hybrid search adds vector similarity, but the primary
 interface is BM25 keyword search. Vector similarity augments it — it doesn't
 replace it.
 
