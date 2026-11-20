@@ -190,7 +190,7 @@ Each tool follows an identical structure:
 pub struct MyParams { ... }
 
 // 2. Router function — returns ToolRouter<KbMcpServer>
-pub(crate) fn router() -> ToolRouter<KbMcpServer> {
+pub fn router() -> ToolRouter<KbMcpServer> {
     KbMcpServer::my_router()
 }
 

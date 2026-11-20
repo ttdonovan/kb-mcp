@@ -10,7 +10,7 @@ The steps and a template are in `docs/src/development/adding-tools.md`; the rule
 ## Steps
 
 1. Put the logic in `crates/kb-core/src/`, with no rmcp, schemars or clap. Output goes through a `kb_core::format::*` function, so the tool and the CLI print the same JSON.
-2. Add the tool: `crates/kb-mcp-server/src/tools/<name>.rs`, `pub(crate) mod <name>;` and `+ <name>::router()` in `tools/mod.rs`. Every parameter has a doc comment: it is the description an agent reads in the schema.
+2. Add the tool: `crates/kb-mcp-server/src/tools/<name>.rs`, `pub mod <name>;` and `+ <name>::router()` in `tools/mod.rs`. Every parameter has a doc comment: it is the description an agent reads in the schema.
 3. Add the CLI subcommand in `crates/kb-cli/src/main.rs`, with the same parameters and defaults.
 4. Name the tool in the server instructions, `get_info` in `crates/kb-mcp-server/src/server.rs`.
 5. Test the shared logic in kb-core.

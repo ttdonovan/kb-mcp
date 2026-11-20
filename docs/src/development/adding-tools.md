@@ -7,7 +7,7 @@ description: "Read before adding an MCP tool: the steps, a template, and the CLI
 ## Steps
 
 1. Create `crates/kb-mcp-server/src/tools/my_tool.rs`
-2. Add `pub(crate) mod my_tool;` to `crates/kb-mcp-server/src/tools/mod.rs`
+2. Add `pub mod my_tool;` to `crates/kb-mcp-server/src/tools/mod.rs`
 3. Add `+ my_tool::router()` to the `combined_router()` function
 4. Add a CLI subcommand in `crates/kb-cli/src/main.rs`
 5. If shared logic is needed, add it to `crates/kb-core/src/`
@@ -29,7 +29,7 @@ pub struct MyToolParams {
     pub query: String,
 }
 
-pub(crate) fn router() -> rmcp::handler::server::router::tool::ToolRouter<KbMcpServer> {
+pub fn router() -> rmcp::handler::server::router::tool::ToolRouter<KbMcpServer> {
     KbMcpServer::my_tool_router()
 }
 

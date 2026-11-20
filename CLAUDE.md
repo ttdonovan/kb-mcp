@@ -162,7 +162,7 @@ Brainstorms and plans are preserved in `docs/project/brainstorms/` and `docs/pro
 ## Adding a New Tool
 
 1. Create `crates/kb-mcp-server/src/tools/my_tool.rs` with params struct and `#[rmcp::tool]` impl
-2. Add `pub(crate) mod my_tool;` to `crates/kb-mcp-server/src/tools/mod.rs`
+2. Add `pub mod my_tool;` to `crates/kb-mcp-server/src/tools/mod.rs`
 3. Add `+ my_tool::router()` to `combined_router()`
 4. Add corresponding CLI subcommand in `crates/kb-cli/src/main.rs`
 5. If new shared logic is needed, add to `crates/kb-core/src/`
