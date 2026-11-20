@@ -67,6 +67,7 @@ impl KbMcpServer {
             })
             .collect();
         let json = kb_core::format::format_query(&results);
+        drop(index);
         Ok(CallToolResult::success(vec![
             rmcp::model::ContentBlock::text(json),
         ]))

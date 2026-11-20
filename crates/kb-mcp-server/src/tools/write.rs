@@ -2,6 +2,7 @@ use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::CallToolResult;
 use schemars::JsonSchema;
 use serde::Deserialize;
+use std::fmt::Write as _;
 
 use crate::server::KbMcpServer;
 
@@ -53,9 +54,7 @@ impl KbMcpServer {
             .iter()
             .find(|c| c.name == params.collection);
 
-        let collection = if let Some(c) = collection {
-            c
-        } else {
+        let Some(collection) = collection else {
             let available: Vec<&str> = self.collections.iter().map(|c| c.name.as_str()).collect();
             return Ok(CallToolResult::error(vec![
                 rmcp::model::ContentBlock::text(format!(
@@ -91,7 +90,7 @@ impl KbMcpServer {
             let canonical_base = collection
                 .path
                 .canonicalize()
-                .unwrap_or(collection.path.clone());
+                .unwrap_or_else(|_| collection.path.clone());
             if let Err(e) = std::fs::create_dir_all(&resolved) {
                 return Ok(CallToolResult::error(vec![
                     rmcp::model::ContentBlock::text(format!(
@@ -114,7 +113,10 @@ impl KbMcpServer {
 
         let today = chrono::Local::now().format("%Y-%m-%d").to_string();
         let base_name = if let Some(ref name) = params.filename {
-            if name.ends_with(".md") {
+            if std::path::Path::new(name)
+                .extension()
+                .is_some_and(|ext| ext.eq_ignore_ascii_case("md"))
+            {
                 name.clone()
             } else {
                 format!("{name}.md")
@@ -131,18 +133,18 @@ impl KbMcpServer {
             .to_string_lossy()
             .to_string();
 
-        let mut frontmatter = String::new();
-        frontmatter.push_str("---\n");
+        // Writing to a String cannot fail.
+        let mut frontmatter = String::from("---\n");
         if !params.tags.is_empty() {
-            frontmatter.push_str(&format!("tags: [{}]\n", params.tags.join(", ")));
+            let _ = writeln!(frontmatter, "tags: [{}]", params.tags.join(", "));
         }
-        frontmatter.push_str(&format!("created: {today}\n"));
-        frontmatter.push_str(&format!("updated: {today}\n"));
+        let _ = writeln!(frontmatter, "created: {today}");
+        let _ = writeln!(frontmatter, "updated: {today}");
         if let Some(status) = &params.status {
-            frontmatter.push_str(&format!("status: {status}\n"));
+            let _ = writeln!(frontmatter, "status: {status}");
         }
         if let Some(source) = &params.source {
-            frontmatter.push_str(&format!("source: {source}\n"));
+            let _ = writeln!(frontmatter, "source: {source}");
         }
         frontmatter.push_str("---\n\n");
 

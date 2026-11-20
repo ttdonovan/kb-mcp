@@ -26,17 +26,16 @@ impl KbMcpServer {
         Parameters(params): Parameters<ContextParams>,
     ) -> Result<CallToolResult, rmcp::ErrorData> {
         let index = self.index.read().await;
-        let doc = index
+        let json = index
             .find_by_path(&params.path)
-            .or_else(|| index.find_by_title(&params.path));
+            .or_else(|| index.find_by_title(&params.path))
+            .map(kb_core::format::format_context);
+        drop(index);
 
-        match doc {
-            Some(doc) => {
-                let json = kb_core::format::format_context(doc);
-                Ok(CallToolResult::success(vec![
-                    rmcp::model::ContentBlock::text(json),
-                ]))
-            }
+        match json {
+            Some(json) => Ok(CallToolResult::success(vec![
+                rmcp::model::ContentBlock::text(json),
+            ])),
             None => Ok(CallToolResult::error(vec![
                 rmcp::model::ContentBlock::text(format!("Document not found: {}", params.path)),
             ])),

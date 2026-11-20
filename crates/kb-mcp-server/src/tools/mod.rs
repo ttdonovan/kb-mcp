@@ -18,6 +18,10 @@ pub mod write;
 use crate::server::KbMcpServer;
 use rmcp::handler::server::router::tool::ToolRouter;
 
+#[expect(
+    clippy::arithmetic_side_effects,
+    reason = "`+` merges tool routers; there is no arithmetic"
+)]
 pub fn combined_router() -> ToolRouter<KbMcpServer> {
     sections::router()
         + documents::router()

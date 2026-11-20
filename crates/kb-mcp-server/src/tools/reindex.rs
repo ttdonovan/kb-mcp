@@ -20,7 +20,7 @@ impl KbMcpServer {
         let section_count = new_index.sections.len();
 
         let mut new_stores = HashMap::new();
-        let mut total_changes = 0;
+        let mut total_changes: usize = 0;
 
         for collection in self.collections.iter() {
             let current_hashes = new_index
@@ -50,7 +50,7 @@ impl KbMcpServer {
                 &self.embedder,
             ) {
                 Ok((mem, changes)) => {
-                    total_changes += changes;
+                    total_changes = total_changes.saturating_add(changes);
                     new_stores.insert(collection.name.clone(), mem);
                 }
                 Err(e) => {

@@ -13,8 +13,7 @@ impl KbMcpServer {
         description = "List all collections and their sections with document counts and descriptions. Use this to discover what knowledge areas are available."
     )]
     pub(crate) async fn list_sections(&self) -> Result<CallToolResult, rmcp::ErrorData> {
-        let index = self.index.read().await;
-        let json = kb_core::format::format_sections(&index.sections);
+        let json = kb_core::format::format_sections(&self.index.read().await.sections);
         Ok(CallToolResult::success(vec![
             rmcp::model::ContentBlock::text(json),
         ]))

@@ -63,6 +63,7 @@ impl KbMcpServer {
             params.stale_days,
             params.min_words,
         );
+        drop(index);
         Ok(CallToolResult::success(vec![
             rmcp::model::ContentBlock::text(json),
         ]))

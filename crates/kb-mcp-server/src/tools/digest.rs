@@ -35,6 +35,7 @@ impl KbMcpServer {
             &index.sections,
             params.collection.as_deref(),
         );
+        drop(index);
         Ok(CallToolResult::success(vec![
             rmcp::model::ContentBlock::text(json),
         ]))
