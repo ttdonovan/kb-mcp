@@ -1,0 +1,14 @@
+# The product book, as the `book` module of the root justfile: `just book` builds it,
+# `just book check` checks it. It uses the tools `just docs setup` installs.
+
+# Build the product book (HTML and llms files) into target/book/html/
+build:
+    @mdbook build {{ source_directory() }}
+
+# Serve the product book with live reload and open it in a browser
+serve:
+    mdbook serve {{ source_directory() }} --open
+
+# Build the book and fail on an error, a warning, an empty chapter, or a link that leads nowhere
+check:
+    @{{ source_directory() }}/../scripts/ci/docs-check.sh book

@@ -1,3 +1,7 @@
+---
+description: Read before adding or updating a landscape page: how projects are found, reviewed and written up
+---
+
 # Landscape Review Process
 
 The AI agent memory space moves fast. This landscape section needs

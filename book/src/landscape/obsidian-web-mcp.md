@@ -1,3 +1,7 @@
+---
+description: obsidian-web-mcp, a remote MCP server for Obsidian vaults: what it does, how it compares with kb-mcp, and what to learn from it
+---
+
 # obsidian-web-mcp
 
 **Source:** [github.com/jimprosser/obsidian-web-mcp](https://github.com/jimprosser/obsidian-web-mcp)

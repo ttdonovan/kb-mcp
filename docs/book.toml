@@ -1,0 +1,39 @@
+# The technical book, for agents first: `just docs` writes the HTML site with llms.txt,
+# llms-full.txt and each chapter's Markdown beside it, in target/docs/html/.
+[book]
+title = "kb-mcp"
+description = "An MCP server and CLI that index markdown knowledge bases for agents: how to install, configure and use it, every tool and config field, and how to work on it."
+authors = ["Tanner Donovan"]
+language = "en"
+src = "src"
+
+[build]
+build-dir = "../target/docs"
+# A missing chapter file is an error, not a stub to create
+create-missing = false
+
+[preprocessor.strip-frontmatter]
+
+# HTML only: the llms output keeps each diagram as a fenced mermaid block
+[preprocessor.mermaid]
+command = "mdbook-mermaid"
+renderers = ["html"]
+
+[output.html]
+default-theme = "coal"
+preferred-dark-theme = "coal"
+git-repository-url = "https://github.com/ttdonovan/kb-mcp"
+edit-url-template = "https://github.com/ttdonovan/kb-mcp/edit/main/docs/{path}"
+additional-js = ["mermaid.min.js", "mermaid-init.js"]
+
+[output.html.fold]
+enable = true
+level = 1
+
+[output.llms]
+sizes = true
+preamble = "llms-preamble.md"
+
+[[output.llms.optional-files]]
+path = "llms-full.txt"
+description = "Every chapter in one file, for reading the whole book at once"

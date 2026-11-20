@@ -1,19 +1,32 @@
+# The product book, for people deciding whether to use kb-mcp: `just book` writes it to
+# target/book/html/; Pages publishes it under /product/ beside the technical book in docs/.
 [book]
-title = "kb-mcp"
+title = "Why kb-mcp"
+description = "Why kb-mcp exists, what it will and will not be, where it is going, and how it compares with other agent memory and search projects."
 authors = ["Tanner Donovan"]
 language = "en"
 src = "src"
 
-[preprocessor.mermaid]
-command = "mdbook-mermaid"
+[build]
+build-dir = "../target/book"
+# A missing chapter file is an error, not a stub to create
+create-missing = false
+
+[preprocessor.strip-frontmatter]
 
 [output.html]
 default-theme = "coal"
 preferred-dark-theme = "coal"
 git-repository-url = "https://github.com/ttdonovan/kb-mcp"
-edit-url-template = "https://github.com/ttdonovan/kb-mcp/edit/main/{path}"
-no-section-label = false
+edit-url-template = "https://github.com/ttdonovan/kb-mcp/edit/main/book/{path}"
 
 [output.html.fold]
 enable = true
 level = 1
+
+[output.llms]
+sizes = true
+
+[[output.llms.optional-files]]
+path = "llms-full.txt"
+description = "Every chapter in one file, for reading the whole book at once"

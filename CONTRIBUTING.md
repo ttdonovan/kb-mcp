@@ -5,13 +5,13 @@
 - Rust, at the version pinned in `rust-toolchain.toml`
 - [just](https://github.com/casey/just)
 - [shellcheck](https://www.shellcheck.net/), [cargo-audit](https://github.com/rustsec/rustsec/tree/main/cargo-audit), `curl` and `jq`, for `just ci`
-- [mdBook](https://rust-lang.github.io/mdBook/) 0.5 and [mdbook-mermaid](https://github.com/badboy/mdbook-mermaid) 0.17, for the book
+- [mdBook](https://rust-lang.github.io/mdBook/) 0.5, [mdbook-mermaid](https://github.com/badboy/mdbook-mermaid) 0.17 and [mdbook-llms](https://github.com/ttdonovan/mdbook-llms) 0.4, for the books: `just docs setup` installs them
 
 ## Workflow
 
-Run `just` to list recipes. Before opening a pull request, run `just ci`: the same gate as CI (`scripts/ci/check.sh`), which checks formatting, runs clippy with warnings as errors on both the default and `hybrid` builds, runs the tests and shellcheck, checks advisories with `cargo audit`, and fails if any dependency in `Cargo.lock` is less than 7 days old (`scripts/ci/crate-age.sh`). Run `just book-build` if the book changed, and `just plugin-validate` if a plugin changed.
+Run `just` to list recipes. Before opening a pull request, run `just ci`: the same gate as CI (`scripts/ci/check.sh`), which checks formatting, runs clippy with warnings as errors on both the default and `hybrid` builds, runs the tests and shellcheck, checks advisories with `cargo audit`, and fails if any dependency in `Cargo.lock` is less than 7 days old (`scripts/ci/crate-age.sh`). Run `just docs check` or `just book check` if a book changed (see `docs/CLAUDE.md` and `book/CLAUDE.md`), and `just plugin-validate` if a plugin changed.
 
-With Claude Code, `just claude` loads the `kb-mcp-dev` plugin: `/kb-mcp-dev:review-code` and `/kb-mcp-dev:review-docs` hand a branch to a read-only reviewer (see `book/src/development/reviewing.md`).
+With Claude Code, `just claude` loads the `kb-mcp-dev` plugin: `/kb-mcp-dev:review-code` and `/kb-mcp-dev:review-docs` hand a branch to a read-only reviewer (see `docs/src/development/reviewing.md`).
 
 `cargo audit` skips the advisories listed in `.cargo/audit.toml`, each with the reason it does not apply. Remove an entry once its fix lands.
 

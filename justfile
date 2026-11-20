@@ -50,16 +50,12 @@ install-cli:
     @cargo install --path crates/kb-cli
 
 # =============================================================================
-# Book
+# Books: the technical book in docs/ (`just docs`, `just docs check`, `just docs setup`)
+# and the product book in book/ (`just book`, `just book check`)
 # =============================================================================
 
-# Build mdBook documentation
-book-build:
-    @cd book && mdbook build
-
-# Serve mdBook with live reload
-book-serve:
-    @cd book && mdbook serve --open
+mod docs
+mod book
 
 # =============================================================================
 # Plugins
@@ -130,7 +126,7 @@ loc-top:
 
 # Full project stats (includes docs, config, vault)
 loc-all:
-    @tokei . --exclude target --exclude book/book
+    @tokei . --exclude target
 
 # Compare against landscape projects (requires sandbox/ clones)
 loc-landscape:

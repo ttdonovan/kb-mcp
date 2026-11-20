@@ -1,3 +1,7 @@
+---
+description: Read before reviewing a change or acting on a review: what the code and docs reviewers check, which doc goes with which code, the report and the review log
+---
+
 # Reviewing a Change
 
 A change is reviewed by an agent that did not write it. The `kb-mcp-dev` plugin has two reviewers, each read-only and run in a forked context, so it sees the branch and the rules but not the conversation that wrote the change:
@@ -5,7 +9,7 @@ A change is reviewed by an agent that did not write it. The `kb-mcp-dev` plugin 
 | Change | Reviewer | Skill |
 |---|---|---|
 | Code, scripts, CI, the plugins' manifests and agents | `code-reviewer` | `/kb-mcp-dev:review-code [branch]` |
-| The book, `docs/`, `README.md`, `CONTRIBUTING.md`, `CLAUDE.md`, the plugins' skills | `docs-reviewer` | `/kb-mcp-dev:review-docs [branch]` |
+| Either book (`docs/src/`, `book/src/`), `README.md`, `CONTRIBUTING.md`, `CLAUDE.md`, the plugins' skills | `docs-reviewer` | `/kb-mcp-dev:review-docs [branch]` |
 
 A branch that changes both gets both. A reviewer advises; it does not approve. This chapter is their checklist: change it here, not in the agents.
 
@@ -25,22 +29,26 @@ A branch that changes both gets both. A reviewer advises; it does not approve. T
 ## The docs reviewer
 
 1. **Every claim is true of the code:** tool names, parameters and defaults; CLI commands and flags; config fields and defaults; recipes; paths.
-2. **Planned is not presented as built:** what `docs/ROADMAP.md` or `docs/plans/` lists as future is not described as working.
+2. **Planned is not presented as built:** what `book/src/roadmap.md` or `docs/project/plans/` lists as future is not described as working.
 3. **The docs agree:** the change leaves no other doc saying something different, by "Keeping the docs true" below.
 4. **Each page serves its reader:** usage pages for someone setting kb-mcp up, reference pages complete, development pages for contributors.
-5. **Links resolve,** and `just book-build` passes if the book changed.
+5. **Each book keeps its rules** (`docs/CLAUDE.md`, `book/CLAUDE.md`): a `description` on every chapter, the product book claiming nothing the technical book does not back.
+6. **Links resolve:** `just docs check` and `just book check` pass for the books changed.
 
 ## Keeping the docs true
 
 | A change to | Goes with |
 |---|---|
-| `crates/kb-mcp-server/src/tools/` | `book/src/reference/tools.md`, the Tools table in `README.md`, the instructions in `server.rs`, the tool count and tree in `CLAUDE.md`, and `plugins/kb-mcp/skills/kb-mcp/SKILL.md` if agents use it differently |
-| `crates/kb-cli/src/main.rs` | `book/src/usage/cli.md`, the CLI section of `README.md` |
-| `crates/kb-core/src/config.rs` | `book/src/reference/ron-schema.md`, `book/src/usage/configuration.md`, `collections.example.ron`, the Configuration section of `README.md`, the user skill |
-| `crates/kb-core/src/store.rs`, `search.rs`, `index.rs` | `docs/ARCHITECTURE.md` |
+| `crates/kb-mcp-server/src/tools/` | `docs/src/reference/tools.md`, the Tools table in `README.md`, the instructions in `server.rs`, the tool count and tree in `CLAUDE.md`, and `plugins/kb-mcp/skills/kb-mcp/SKILL.md` if agents use it differently |
+| `crates/kb-cli/src/main.rs` | `docs/src/usage/cli.md`, the CLI section of `README.md` |
+| `crates/kb-core/src/config.rs` | `docs/src/reference/ron-schema.md`, `docs/src/usage/configuration.md`, `collections.example.ron`, the Configuration section of `README.md`, the user skill |
+| `crates/kb-core/src/store.rs`, `search.rs`, `index.rs` | `docs/src/development/architecture.md` |
 | `justfile` | the commands in `CLAUDE.md`, the Development section of `README.md` |
+| `.github/workflows/release-binaries.yml` | `docs/src/usage/installation.md`, the Install section of `README.md` |
 | `scripts/ci/`, `.github/`, `release-plz.toml`, `.cargo/audit.toml` | `CONTRIBUTING.md` |
 | `plugins/`, `.claude-plugin/` | [Claude Code Plugins](plugins.md) |
+| A feature built, or a tool added, that a user would notice | `book/src/introduction.md`, and `book/src/roadmap.md` if it was planned there |
+| `docs/book.toml`, `book/book.toml`, `docs/justfile`, `book/justfile`, `scripts/ci/docs-check.sh` | `docs/CLAUDE.md`, `book/CLAUDE.md`, [About this book](../README.md) |
 
 ## The report
 

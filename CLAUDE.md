@@ -47,9 +47,13 @@ kb-mcp/
 │               ├── query.rs         # kb_query
 │               ├── export.rs        # kb_export
 │               └── health.rs        # kb_health
-├── book/                            # mdBook documentation
+├── book/                            # Product book (mdBook): why, goals, roadmap, landscape
 └── docs/
+    ├── src/                         # Technical book (mdBook + mermaid + mdbook-llms)
+    └── project/                     # Brainstorms, plans, ideas, solutions (in neither book)
 ```
+
+Working in `docs/` or `book/`: read `docs/CLAUDE.md` or `book/CLAUDE.md` first.
 
 ## Key Patterns
 
@@ -126,8 +130,10 @@ just install-cli  # Install kb CLI only
 just install-server # Install kb-mcp server only
 just run <args>   # cargo run -p kb-cli -- <args>
 just run-server   # cargo run -p kb-mcp-server
-just book-build   # Build mdBook docs
-just book-serve   # Serve docs with live reload
+just docs         # Build the technical book (docs/) into target/docs/html/
+just docs check   # Check it: warnings, empty chapters, broken links
+just docs setup   # Install mdBook, mdbook-mermaid and mdbook-llms
+just book         # Build the product book (book/); also `just book check`
 just claude       # Claude Code with the kb-mcp-dev plugin loaded
 just plugin-validate # Validate the plugin marketplace and both plugins
 ```
@@ -139,19 +145,19 @@ After making changes, verify with:
 - `cargo build --workspace` — compiles without errors
 - `cargo clippy --workspace` — no new warnings
 - `cargo test --workspace` — tests pass
-- `just book-build` — mdBook builds cleanly (if docs changed)
+- `just docs check` / `just book check` — the books build cleanly (if docs changed)
 - `cargo run -p kb-cli -- list-sections` — CLI works against `collections.ron`
 - `cargo run -p kb-cli -- search --query "test"` — search returns results
 
 ## Development Tooling
 
-The `kb-mcp-dev` Claude Code plugin (`plugins/kb-mcp-dev/`, loaded by `just claude`) has skills for adding a tool, working in a stack and releasing, and read-only reviewers (`/kb-mcp-dev:review-code`, `/kb-mcp-dev:review-docs`). See [book/src/development/plugins.md](book/src/development/plugins.md).
+The `kb-mcp-dev` Claude Code plugin (`plugins/kb-mcp-dev/`, loaded by `just claude`) has skills for adding a tool, working in a stack and releasing, and read-only reviewers (`/kb-mcp-dev:review-code`, `/kb-mcp-dev:review-docs`). See [docs/src/development/plugins.md](docs/src/development/plugins.md).
 
-See [docs/DEV.md](docs/DEV.md) for the full development methodology,
+See [docs/src/development/methodology.md](docs/src/development/methodology.md) for the full development methodology,
 including the Compound Engineering workflow (`/ce:brainstorm` → `/ce:plan`
 → `/ce:work` → `/ce:review` → `/ce:compound`) and session patterns.
 
-Brainstorms and plans are preserved in `docs/brainstorms/` and `docs/plans/`.
+Brainstorms and plans are preserved in `docs/project/brainstorms/` and `docs/project/plans/`.
 
 ## Adding a New Tool
 

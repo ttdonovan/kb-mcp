@@ -1,3 +1,7 @@
+---
+description: Read to compare kb-mcp with other agent memory and knowledge projects: a table of each, and where kb-mcp fits
+---
+
 # Landscape
 
 A survey of related projects in the AI agent memory and knowledge

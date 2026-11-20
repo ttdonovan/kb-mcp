@@ -1,0 +1,21 @@
+# The technical book, as the `docs` module of the root justfile: `just docs` builds it,
+# `just docs check` checks it. Paths are relative to this file, so it also works from docs/.
+
+# Build the technical book (HTML, llms.txt, llms-full.txt, per-chapter Markdown) into target/docs/html/
+build:
+    @mdbook build {{ source_directory() }}
+    @echo "Agents: read target/docs/html/llms.txt first."
+
+# Serve the technical book with live reload and open it in a browser
+serve:
+    mdbook serve {{ source_directory() }} --open
+
+# Build the book and fail on an error, a warning, an empty chapter, or a link that leads nowhere
+check:
+    @{{ source_directory() }}/../scripts/ci/docs-check.sh docs
+
+# Install both books' tools: mdBook 0.5, mdbook-mermaid and mdbook-llms (with mdbook-strip-frontmatter)
+setup:
+    cargo install --locked mdbook --version 0.5.4
+    cargo install --locked mdbook-mermaid --version 0.17.1
+    cargo install --locked --git https://github.com/ttdonovan/mdbook-llms --tag v0.4.0

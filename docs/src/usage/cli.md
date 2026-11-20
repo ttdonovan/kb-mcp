@@ -1,3 +1,7 @@
+---
+description: Read to use the kb CLI from a shell or a script: every command, its flags, and its JSON output
+---
+
 # CLI
 
 The `kb` binary provides CLI access to all MCP tools. Every MCP tool has a

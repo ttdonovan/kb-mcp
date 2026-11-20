@@ -1,3 +1,7 @@
+---
+description: Look up an MCP tool: every tool, its parameters and defaults, and the JSON it returns
+---
+
 # Tools
 
 ## list_sections

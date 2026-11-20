@@ -1,3 +1,7 @@
+---
+description: Read before installing kb-mcp's Claude Code plugins or changing them: the kb-mcp plugin for users and the kb-mcp-dev plugin for contributors
+---
+
 # Claude Code Plugins
 
 This repository is a Claude Code plugin marketplace with two plugins, both under `plugins/`:
@@ -29,7 +33,7 @@ A plugin cannot reach files outside its own folder, so the skill links to this b
 | `/kb-mcp-dev:review-docs [branch]` | hand a change to the docs to the read-only `docs-reviewer` |
 | `/kb-mcp-dev:work-in-a-stack` | split a change into a stack of pull requests with `gh stack`, and review each layer |
 | `/kb-mcp-dev:release` | check, merge and confirm a release; only you can start it |
-| `kb-mcp-dev:mdbook-docs` | write this book's pages and Mermaid diagrams |
+| `kb-mcp-dev:mdbook-docs` | general mdBook and Mermaid help; for either book, `docs/CLAUDE.md` or `book/CLAUDE.md` holds the project's rules and comes first |
 | `kb-mcp-dev:obsidian-markdown`, `obsidian-bases`, `obsidian-cli` | work on the Obsidian vault in `vault/`; copied from upstream, see `skills/UPSTREAM.md` |
 
 What the reviewers check, and their report, are in [Reviewing a Change](reviewing.md).

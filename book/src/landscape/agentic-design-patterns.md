@@ -1,3 +1,7 @@
+---
+description: How the patterns in the Agentic Design Patterns book map onto kb-mcp, and which belong in other projects
+---
+
 # Agentic Design Patterns
 
 **Source:** [github.com/Mathews-Tom/Agentic-Design-Patterns](https://github.com/Mathews-Tom/Agentic-Design-Patterns)
@@ -145,7 +149,7 @@ queries.
 | Session/State management | Agent framework's job (ADK, LangGraph), not the knowledge base |
 | Self-modification (SICA, Ch 9) | Far beyond scope — kb-mcp is a retrieval tool |
 | Cloud memory services (Vertex, Ch 8) | kb-mcp is local-first by design |
-| Complex learning pipelines (Ch 9) | Belongs in a separate project per the [Ori-Mnemos brainstorm](../brainstorms/archived/2026-03-21-ori-mnemos-learnings-brainstorm.md) |
+| Complex learning pipelines (Ch 9) | Belongs in a separate project per the [Ori-Mnemos brainstorm](https://github.com/ttdonovan/kb-mcp/blob/main/docs/project/brainstorms/archived/2026-03-21-ori-mnemos-learnings-brainstorm.md) |
 
 ## Key Insight: kb-mcp as Knowledge Retrieval, Not Memory
 
@@ -166,7 +170,7 @@ preferences, and identity — things that belong in the agent framework
 or a dedicated memory system.
 
 This validates both kb-mcp's focused scope and the conclusion from the
-[Ori-Mnemos brainstorm](../brainstorms/archived/2026-03-21-ori-mnemos-learnings-brainstorm.md):
+[Ori-Mnemos brainstorm](https://github.com/ttdonovan/kb-mcp/blob/main/docs/project/brainstorms/archived/2026-03-21-ori-mnemos-learnings-brainstorm.md):
 agent memory (session state, learning, identity) belongs in a separate
 project that could *use* kb-mcp as its knowledge retrieval layer.
 
@@ -174,7 +178,7 @@ project that could *use* kb-mcp as its knowledge retrieval layer.
 
 Chapter 9 describes **"Knowledge Base Learning Agents"** that "leverage
 RAG to maintain a dynamic knowledge base of problem descriptions and
-proven solutions." This is exactly what kb-mcp's `docs/solutions/`
+proven solutions." This is exactly what kb-mcp's `docs/project/solutions/`
 directory does via the `/ce:compound` workflow — but manually. An agent
 could automate this: after solving a problem, write the solution to the
 vault via `kb_write`. The researcher agent already does something

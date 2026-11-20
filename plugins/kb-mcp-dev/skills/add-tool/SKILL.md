@@ -5,7 +5,7 @@ description: Add an MCP tool to kb-mcp with its CLI equivalent, shared logic in 
 
 # Add a tool
 
-The steps and a template are in `book/src/development/adding-tools.md`; the rules they serve are "Hard Rules" in `CLAUDE.md`. This skill is the order and what is easy to miss.
+The steps and a template are in `docs/src/development/adding-tools.md`; the rules they serve are "Hard Rules" in `CLAUDE.md`. This skill is the order and what is easy to miss.
 
 ## Steps
 
@@ -14,7 +14,7 @@ The steps and a template are in `book/src/development/adding-tools.md`; the rule
 3. Add the CLI subcommand in `crates/kb-cli/src/main.rs`, with the same parameters and defaults.
 4. Name the tool in the server instructions, `get_info` in `crates/kb-mcp-server/src/server.rs`.
 5. Test the shared logic in kb-core.
-6. Update the docs: `book/src/reference/tools.md`, `book/src/usage/cli.md`, the Tools table in `README.md`, and the tool count and tree in `CLAUDE.md`. If agents should use it, the user plugin's skill, `plugins/kb-mcp/skills/kb-mcp/SKILL.md`.
+6. Update the docs: `docs/src/reference/tools.md`, `docs/src/usage/cli.md`, the Tools table in `README.md`, and the tool count and tree in `CLAUDE.md`. If agents should use it, the user plugin's skill, `plugins/kb-mcp/skills/kb-mcp/SKILL.md`.
 7. Run `just ci`, then try both transports: `cargo run -p kb-cli -- <command> ...`, and the tool from an MCP client.
 8. Review with `/kb-mcp-dev:review-code`, and `/kb-mcp-dev:review-docs` for the docs.
 

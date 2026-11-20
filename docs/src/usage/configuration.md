@@ -1,3 +1,7 @@
+---
+description: Read to point kb-mcp at your markdown: collections.ron, where kb-mcp finds it, cache_dir and index file names, and KB_MCP_CONFIG and KB_MCP_CACHE_DIR
+---
+
 # Configuration
 
 kb-mcp is configured via a `collections.ron` file that defines what markdown
