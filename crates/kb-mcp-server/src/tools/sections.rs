@@ -15,8 +15,8 @@ impl KbMcpServer {
     pub(crate) async fn list_sections(&self) -> Result<CallToolResult, rmcp::ErrorData> {
         let index = self.index.read().await;
         let json = kb_core::format::format_sections(&index.sections);
-        Ok(CallToolResult::success(vec![rmcp::model::Content::text(
-            json,
-        )]))
+        Ok(CallToolResult::success(vec![
+            rmcp::model::ContentBlock::text(json),
+        ]))
     }
 }

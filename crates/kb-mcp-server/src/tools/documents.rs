@@ -40,13 +40,13 @@ impl KbMcpServer {
                 } else {
                     kb_core::format::format_document(doc, true)
                 };
-                Ok(CallToolResult::success(vec![rmcp::model::Content::text(
-                    json,
-                )]))
+                Ok(CallToolResult::success(vec![
+                    rmcp::model::ContentBlock::text(json),
+                ]))
             }
-            None => Ok(CallToolResult::error(vec![rmcp::model::Content::text(
-                format!("Document not found: {}", params.path),
-            )])),
+            None => Ok(CallToolResult::error(vec![
+                rmcp::model::ContentBlock::text(format!("Document not found: {}", params.path)),
+            ])),
         }
     }
 }

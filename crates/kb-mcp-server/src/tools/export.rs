@@ -71,7 +71,9 @@ impl KbMcpServer {
                 Some(c) => format!("No documents found in collection '{}'", c),
                 None => "No documents found".to_string(),
             };
-            return Ok(CallToolResult::error(vec![rmcp::model::Content::text(msg)]));
+            return Ok(CallToolResult::error(vec![
+                rmcp::model::ContentBlock::text(msg),
+            ]));
         }
 
         let mut output =
@@ -84,8 +86,8 @@ impl KbMcpServer {
                 matching_count
             ));
         }
-        Ok(CallToolResult::success(vec![rmcp::model::Content::text(
-            output,
-        )]))
+        Ok(CallToolResult::success(vec![
+            rmcp::model::ContentBlock::text(output),
+        ]))
     }
 }

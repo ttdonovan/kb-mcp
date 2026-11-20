@@ -46,13 +46,13 @@ impl KbMcpServer {
             && !self.collections.iter().any(|c| c.name == *coll)
         {
             let available: Vec<&str> = self.collections.iter().map(|c| c.name.as_str()).collect();
-            return Ok(CallToolResult::error(vec![rmcp::model::Content::text(
-                format!(
+            return Ok(CallToolResult::error(vec![
+                rmcp::model::ContentBlock::text(format!(
                     "Collection '{}' not found. Available: {}",
                     coll,
                     available.join(", ")
-                ),
-            )]));
+                )),
+            ]));
         }
 
         self.auto_reindex_stale_collections().await;
@@ -63,8 +63,8 @@ impl KbMcpServer {
             params.stale_days,
             params.min_words,
         );
-        Ok(CallToolResult::success(vec![rmcp::model::Content::text(
-            json,
-        )]))
+        Ok(CallToolResult::success(vec![
+            rmcp::model::ContentBlock::text(json),
+        ]))
     }
 }

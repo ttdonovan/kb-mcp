@@ -45,7 +45,7 @@ impl KbMcpServer {
     ) -> Result<CallToolResult, rmcp::ErrorData> {
         // Call kb_core functions for shared logic
         Ok(CallToolResult::success(vec![
-            rmcp::model::Content::text("result"),
+            rmcp::model::ContentBlock::text("result"),
         ]))
     }
 }

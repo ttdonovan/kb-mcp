@@ -1,10 +1,6 @@
 # Advisories cargo audit may skip, each with why it does not apply. Remove an entry once the fix lands.
 [advisories]
 ignore = [
-    # rmcp 1.5: unbounded body buffering in Streamable HTTP *clients*. kb-mcp is a stdio server
-    # (features server + transport-io). Fixed in rmcp >= 3.9, a breaking upgrade: kb-mcp#12.
-    "RUSTSEC-2026-0462",
-
     # The memvid-core parser advisories below go away with the bumps in memvid#242 and memvid#260, or
     # with optional document readers (memvid#266); issues at https://github.com/memvid/memvid/issues.
 
