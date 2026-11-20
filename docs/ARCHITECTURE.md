@@ -281,7 +281,11 @@ flowchart TD
 ## Persistent Storage (memvid-core)
 
 Search is backed by memvid-core's `.mv2` persistent storage. Each
-collection gets its own `.mv2` file at `<cache_dir>/<hash>-<name>.mv2`.
+collection gets its own `.mv2` file at `<cache_dir>/<hash>-<name>.mv2`,
+where the hash is of the absolute collection path. With
+`index_names: Name` it is `<cache_dir>/<name>.mv2` instead, so a config
+that moves (e.g. a plugin update) reuses its index; this needs a
+`cache_dir` dedicated to one config.
 
 - **Startup:** opens existing `.mv2` files, diffs content hashes against
   a sidecar `.hashes` file, and only re-ingests changed documents

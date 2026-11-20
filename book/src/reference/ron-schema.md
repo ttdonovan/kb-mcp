@@ -9,6 +9,11 @@ The full `collections.ron` schema with all fields:
     // Supports ~ expansion
     cache_dir: "~/.cache/kb-mcp",
 
+    // How index files in cache_dir are named
+    // Path: <hash of absolute collection path>-<name>.mv2 (default)
+    // Name: <name>.mv2, reused when the config moves; needs a cache_dir dedicated to this config
+    index_names: Path,
+
     collections: [
         (
             // Unique name — used in search filters and kb_write target
@@ -44,7 +49,13 @@ The RON file deserializes into these Rust types:
 ```rust
 struct Config {
     cache_dir: Option<String>,
+    index_names: IndexNames, // default: Path
     collections: Vec<Collection>,
+}
+
+enum IndexNames {
+    Path,
+    Name,
 }
 
 struct Collection {

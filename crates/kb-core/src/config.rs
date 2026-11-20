@@ -15,7 +15,25 @@ use serde::{Deserialize, Serialize};
 pub struct Config {
     #[serde(default)]
     pub cache_dir: Option<String>,
+    #[serde(default)]
+    pub index_names: IndexNames,
     pub collections: Vec<CollectionDef>,
+}
+
+/// How each collection's index files in `cache_dir` are named.
+///
+/// `Path` (default) is safe in a cache dir shared by many configs but leaves
+/// an orphaned index whenever the collections move. `Name` keeps one index per
+/// collection across moves (e.g. plugin updates), so it needs a cache dir
+/// dedicated to this config: another config with the same collection name
+/// would share, and keep rebuilding, the same file.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize, Serialize)]
+pub enum IndexNames {
+    /// `<hash of absolute collection path>-<name>.mv2`
+    #[default]
+    Path,
+    /// `<name>.mv2`
+    Name,
 }
 
 /// A collection definition from the RON config, with paths still relative.
@@ -51,6 +69,7 @@ pub struct ResolvedCollection {
     pub description: String,
     pub writable: bool,
     pub sections: Vec<SectionDef>,
+    pub index_names: IndexNames,
 }
 
 impl Config {
@@ -62,6 +81,7 @@ impl Config {
             .map(|s| config_dir.join(shellexpand(&s)))
             .unwrap_or_else(default_cache_dir);
 
+        let index_names = self.index_names;
         let collections = self
             .collections
             .into_iter()
@@ -74,6 +94,7 @@ impl Config {
                     description: c.description,
                     writable: c.writable,
                     sections: c.sections,
+                    index_names,
                 }
             })
             .collect();
@@ -172,6 +193,7 @@ mod tests {
     fn config(cache_dir: Option<&str>) -> Config {
         Config {
             cache_dir: cache_dir.map(str::to_string),
+            index_names: IndexNames::default(),
             collections: vec![],
         }
     }

@@ -8,7 +8,7 @@
 
 use std::path::PathBuf;
 
-use kb_core::config::{ResolvedCollection, SectionDef};
+use kb_core::config::{IndexNames, ResolvedCollection, SectionDef};
 use kb_core::index::Index;
 use kb_core::types::ROOT_SECTION;
 
@@ -40,6 +40,7 @@ fn fixture_collection(test_name: &str) -> (PathBuf, ResolvedCollection) {
             prefix: "golang".to_string(),
             description: "Go docs".to_string(),
         }],
+        index_names: IndexNames::Path,
     };
 
     (root, collection)
