@@ -5,6 +5,9 @@ git_only = true
 publish = false
 # Release only when the release PR is merged
 release_always = false
+# No crate is published, so its Rust API is not the public interface: CONTRIBUTING.md (Versioning)
+# defines that, and the commits say when it breaks. Turn this back on for a crate if it is ever published.
+semver_check = false
 changelog_path = "./CHANGELOG.md"
 changelog_update = false
 git_tag_enable = false
