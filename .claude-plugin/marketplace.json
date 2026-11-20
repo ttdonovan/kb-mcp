@@ -1,0 +1,19 @@
+{
+  "name": "kb-mcp",
+  "description": "kb-mcp: an MCP server and CLI that index markdown knowledge bases for agents",
+  "owner": {
+    "name": "ttdonovan"
+  },
+  "plugins": [
+    {
+      "name": "kb-mcp",
+      "source": "./plugins/kb-mcp",
+      "description": "Use kb-mcp from any repository: search and read a markdown knowledge base through its tools, and set it up for a project"
+    },
+    {
+      "name": "kb-mcp-dev",
+      "source": "./plugins/kb-mcp-dev",
+      "description": "For changing kb-mcp itself: adding a tool, reviewing changes to the code and the docs, working in a stack of pull requests, and making a release"
+    }
+  ]
+}

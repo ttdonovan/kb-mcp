@@ -29,7 +29,7 @@ to it. Neither tool replaces the other.
 ## Claude Code Skills
 
 Three Obsidian skills from [kepano/obsidian-skills](https://github.com/kepano/obsidian-skills)
-(by Steph Ango, Obsidian CEO) are included in `.claude/skills/` to help
+(by Steph Ango, Obsidian CEO) are included in the `kb-mcp-dev` plugin (`plugins/kb-mcp-dev/skills/`) to help
 agents create well-formed vault content:
 
 ### obsidian-markdown

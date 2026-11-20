@@ -39,4 +39,6 @@
 - [Architecture](development/architecture.md)
 - [Tooling & Methodology](development/methodology.md)
 - [Adding Tools](development/adding-tools.md)
+- [Claude Code Plugins](development/plugins.md)
+- [Reviewing a Change](development/reviewing.md)
 - [ZeroClaw Researcher Agent](development/agents/researcher.md)

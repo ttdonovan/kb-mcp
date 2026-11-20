@@ -128,6 +128,8 @@ just run <args>   # cargo run -p kb-cli -- <args>
 just run-server   # cargo run -p kb-mcp-server
 just book-build   # Build mdBook docs
 just book-serve   # Serve docs with live reload
+just claude       # Claude Code with the kb-mcp-dev plugin loaded
+just plugin-validate # Validate the plugin marketplace and both plugins
 ```
 
 ## Verification
@@ -142,6 +144,8 @@ After making changes, verify with:
 - `cargo run -p kb-cli -- search --query "test"` — search returns results
 
 ## Development Tooling
+
+The `kb-mcp-dev` Claude Code plugin (`plugins/kb-mcp-dev/`, loaded by `just claude`) has skills for adding a tool, working in a stack and releasing, and read-only reviewers (`/kb-mcp-dev:review-code`, `/kb-mcp-dev:review-docs`). See [book/src/development/plugins.md](book/src/development/plugins.md).
 
 See [docs/DEV.md](docs/DEV.md) for the full development methodology,
 including the Compound Engineering workflow (`/ce:brainstorm` → `/ce:plan`

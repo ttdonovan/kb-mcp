@@ -5,6 +5,9 @@
 .claude/settings.local.json
 /collections.ron
 
+# Agent review logs and session state
+.ai/
+
 # Obsidian — commit app/appearance/plugin-list, ignore local state
 vault/.obsidian/workspace.json
 vault/.obsidian/workspace-mobile.json

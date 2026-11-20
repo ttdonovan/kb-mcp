@@ -1,0 +1,11 @@
+{
+  "name": "kb-mcp",
+  "description": "Use kb-mcp from any repository: search and read a markdown knowledge base through its tools, and set it up for a project",
+  "author": {
+    "name": "ttdonovan"
+  },
+  "homepage": "https://ttdonovan.github.io/kb-mcp/",
+  "repository": "https://github.com/ttdonovan/kb-mcp",
+  "license": "MIT",
+  "keywords": ["knowledge-base", "markdown", "search", "mcp"]
+}
