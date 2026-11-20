@@ -49,7 +49,7 @@ The plugin also adds an MCP server, `kb-dev`, that runs kb-mcp built from the ch
 
 After changing the code, reconnect `kb-dev` in `/mcp`: the wrapper rebuilds and restarts it. If a first build takes longer than the session waits for the server, reconnect once it finishes. In `/mcp` it is listed as `plugin:kb-mcp-dev:kb-dev`.
 
-- `just claude` starts a session with it loaded from the checkout, so an edit applies on the next session or after `/reload-plugins` (arguments go to `claude`, such as `just claude --resume`).
+- `just claude` starts a session with it loaded from the checkout, so an edit applies on the next session or after `/reload-plugins` (arguments go to `claude`, such as `just claude --resume`). It is also how a session here gets kb-mcp's tools: the repository has no `.mcp.json`.
 - To have it in every session here instead: `claude plugin marketplace add ./` from the root, then `claude plugin install kb-mcp-dev@kb-mcp --scope local`. `--scope project` would write it into the shared `.claude/settings.json`.
 - `.claude/` holds only the committed `settings.json`, whose deny rules a plugin cannot ship, and each contributor's `settings.local.json`.
 - A new skill goes in `plugins/kb-mcp-dev/skills/<name>/SKILL.md` and a new agent in `plugins/kb-mcp-dev/agents/<name>.md`, each with a `description` that says when to use it. Add a row to the table above and run `just plugin-validate`. Keep a skill to steps and pointers into this book or `CONTRIBUTING.md`, so a rule is written once.
