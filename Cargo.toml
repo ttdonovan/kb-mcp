@@ -7,3 +7,6 @@ version = "0.3.0"
 edition = "2024"
 license = "MIT"
 repository = "https://github.com/ttdonovan/kb-mcp"
+homepage = "https://ttdonovan.github.io/kb-mcp/"
+# Released from git tags (vX.Y.Z), not crates.io
+publish = false

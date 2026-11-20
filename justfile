@@ -28,6 +28,14 @@ clippy:
 test:
     @cargo test --workspace
 
+# Format all crates
+fmt:
+    @cargo fmt --all
+
+# The CI gate: fmt, clippy (BM25 + hybrid), tests, shellcheck, cargo audit, crate age
+ci:
+    @scripts/ci/check.sh
+
 # Install both binaries to ~/.cargo/bin
 install:
     @cargo install --path crates/kb-mcp-server
