@@ -2,8 +2,11 @@
 [advisories]
 ignore = [
     # rmcp 1.5: unbounded body buffering in Streamable HTTP *clients*. kb-mcp is a stdio server
-    # (features server + transport-io). Fixed in rmcp >= 3.9, a breaking upgrade.
+    # (features server + transport-io). Fixed in rmcp >= 3.9, a breaking upgrade: kb-mcp#12.
     "RUSTSEC-2026-0462",
+
+    # The memvid-core parser advisories below go away with the bumps in memvid#242 and memvid#260, or
+    # with optional document readers (memvid#266); issues at https://github.com/memvid/memvid/issues.
 
     # lopdf 0.39 via memvid-core: stack overflow on deeply nested PDF objects. memvid parses a payload as
     # PDF when it starts with "%PDF", so a crafted .md file placed in a collection can crash indexing
