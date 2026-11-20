@@ -17,6 +17,21 @@ updates:
       interval: weekly
     cooldown:
       default-days: 7
+    # Breaking upgrades are deliberate choices, made by hand
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+      # 0.x crates: a minor bump is breaking under Cargo semver
+      - dependency-name: chrono
+        update-types: ["version-update:semver-minor"]
+      - dependency-name: ron
+        update-types: ["version-update:semver-minor"]
+      - dependency-name: serde_yaml
+        update-types: ["version-update:semver-minor"]
+      - dependency-name: sha2
+        update-types: ["version-update:semver-minor"]
+      - dependency-name: tracing
+        update-types: ["version-update:semver-minor"]
     groups:
       cargo:
         patterns: ["*"]
