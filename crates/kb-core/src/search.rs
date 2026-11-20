@@ -9,6 +9,8 @@
 //! RRF fusion of BM25 + vector results. Otherwise, BM25-only via `search()`.
 
 use std::collections::HashMap;
+use std::fs::Metadata;
+use std::path::Path;
 use std::sync::Mutex;
 
 use memvid_core::Memvid;
@@ -72,6 +74,28 @@ impl SearchEngine {
     pub fn replace_all_stores(&self, new_stores: HashMap<String, Memvid>) {
         let mut stores = self.stores.lock().unwrap();
         *stores = new_stores;
+    }
+
+    /// Whether the collection's `.mv2` at `mv2` is no longer the file our handle
+    /// has open, i.e. another process synced and renamed a new store over it.
+    ///
+    /// Compares the held file with the path instead of the shared `.hashes`
+    /// sidecar, whose mtime the other process has already bumped. Returns
+    /// false when no handle is held or either side can't be stat'ed.
+    pub fn store_replaced(&self, collection_name: &str, mv2: &Path) -> bool {
+        let stores = self.stores.lock().unwrap();
+        let Some(mem) = stores.get(collection_name) else {
+            return false;
+        };
+        let held = mem
+            .lock_handle()
+            .clone_handle()
+            .and_then(|f| Ok(f.metadata()?))
+            .ok();
+        match (held, std::fs::metadata(mv2).ok()) {
+            (Some(held), Some(on_disk)) => !same_file(&held, &on_disk),
+            _ => false,
+        }
     }
 
     /// Search across collections. When hybrid feature is enabled, uses RRF
@@ -222,4 +246,17 @@ impl SearchEngine {
 
         results
     }
+}
+
+/// Stores are replaced by rename, never modified in place, so a new inode
+/// means a new store. Non-unix falls back to size + mtime.
+#[cfg(unix)]
+fn same_file(a: &Metadata, b: &Metadata) -> bool {
+    use std::os::unix::fs::MetadataExt;
+    a.dev() == b.dev() && a.ino() == b.ino()
+}
+
+#[cfg(not(unix))]
+fn same_file(a: &Metadata, b: &Metadata) -> bool {
+    a.len() == b.len() && a.modified().ok() == b.modified().ok()
 }
