@@ -9,6 +9,9 @@ changelog_path = "./CHANGELOG.md"
 changelog_update = false
 git_tag_enable = false
 git_release_enable = false
+# Every crate finds its previous release at the shared vX.Y.Z tag; without this, git-only mode looks
+# for <crate>-vX.Y.Z, never finds one, and changelog_include skips that crate's commits.
+git_tag_name = "v{{ version }}"
 
 # The release is named after the server; the other crates' commits are folded into its changelog.
 [[package]]
@@ -17,7 +20,6 @@ version_group = "kb"
 changelog_update = true
 changelog_include = ["kb-core", "kb-cli"]
 git_tag_enable = true
-git_tag_name = "v{{ version }}"
 git_release_enable = true
 git_release_name = "v{{ version }}"
 
