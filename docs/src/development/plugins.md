@@ -45,7 +45,7 @@ The plugin also adds an MCP server, `kb-dev`, that runs kb-mcp built from the ch
 - finds the checkout from the plugin's own folder when loaded in place (`just claude`), otherwise from the session's project directory, and fails with a message outside a kb-mcp checkout;
 - runs `cargo build --locked -p kb-mcp-server`, which takes a few seconds when nothing changed and longer on a first build, then starts `target/debug/kb-mcp`;
 - serves `collections.ron` at the root if you have one (it is gitignored), otherwise `collections.example.ron`, which indexes this repository; `KB_MCP_CONFIG` overrides it;
-- keeps the index in `target/kb-mcp-dev/index/`, apart from an installed kb-mcp's; `KB_MCP_CACHE_DIR` overrides it.
+- keeps the index in `.ai/kb-dev/index/` (gitignored, beside the review logs), apart from an installed kb-mcp's, so `cargo clean` does not remove it; `KB_MCP_CACHE_DIR` overrides it.
 
 After changing the code, reconnect `kb-dev` in `/mcp`: the wrapper rebuilds and restarts it. If a first build takes longer than the session waits for the server, reconnect once it finishes. In `/mcp` it is listed as `plugin:kb-mcp-dev:kb-dev`.
 

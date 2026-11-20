@@ -30,6 +30,6 @@ if [[ -z "${KB_MCP_CONFIG:-}" ]]; then
 fi
 export KB_MCP_CONFIG
 # Keep the debug build's index apart from an installed kb-mcp's.
-export KB_MCP_CACHE_DIR="${KB_MCP_CACHE_DIR:-$root/target/kb-mcp-dev/index}"
+export KB_MCP_CACHE_DIR="${KB_MCP_CACHE_DIR:-$root/.ai/kb-dev/index}"
 
 exec "${CARGO_TARGET_DIR:-$root/target}/debug/kb-mcp"
