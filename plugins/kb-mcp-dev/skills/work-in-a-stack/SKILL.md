@@ -22,8 +22,8 @@ A stack is a chain of branches, each built on the one below, the first on `main`
 
 1. Start the stack: `gh stack init <branch>` from `main`, or `gh stack init <branch1> <branch2>` to adopt branches that exist. Name branches `<type>/<subject>`, such as `feat/kb-links`.
 2. Commit the bottom layer, then `gh stack add <next-branch>` for each layer above, committing on each in turn.
-3. On each branch, run `just ci`, and `just book-build` if the book changed.
-4. Review each layer against the one below: `/kb-mcp-dev:review-code <branch>`, `/kb-mcp-dev:review-docs <branch>`. Fix a finding on the branch it belongs to, then `gh stack rebase --upstack` to carry it up. Record the round in the reviewed branch's log, `.ai/reviews/<kind>/<branch>.md` (`book/src/development/reviewing.md`, "The review log").
+3. On each branch, run `just ci`, and `just docs check` or `just book check` if a book changed.
+4. Review each layer against the one below: `/kb-mcp-dev:review-code <branch>`, `/kb-mcp-dev:review-docs <branch>`. Fix a finding on the branch it belongs to, then `gh stack rebase --upstack` to carry it up. Record the round in the reviewed branch's log, `.ai/reviews/<kind>/<branch>.md` (`docs/src/development/reviewing.md`, "The review log").
 5. Show the person `gh stack view` and the commits on each branch (`git log --oneline <base>..<branch>`). Push only when they say so: `gh stack submit` pushes every branch and opens the pull requests, which is visible to others. Run by an agent it opens drafts with generated titles; open each pull request with `gh pr create` and its own title and description first, then `gh stack submit` links them.
 6. When `main` moves, `gh stack rebase` carries every layer onto it, locally. `gh stack sync` also pushes every branch, so ask the person before running it. On a conflict, resolve it and run `gh stack rebase --continue`, or `gh stack rebase --abort` to restore the branches.
 

@@ -1,3 +1,7 @@
+---
+description: Start here if you are deciding whether to use kb-mcp. What it is, why it exists, where it fits beside other agent memory and search tools, and where to read next
+---
+
 # kb-mcp
 
 **Local, Rust-native MCP server for markdown knowledge bases.**
@@ -25,7 +29,7 @@ limit error".
 similarity via a local ONNX embedding model (BGE-small-en-v1.5). Conceptual
 queries like "how do agents share state?" now match documents titled "Shared
 Memory" that keyword search alone would miss. Results are fused with
-[Reciprocal Rank Fusion](usage/hybrid-search.md) — keyword precision isn't
+[Reciprocal Rank Fusion](https://ttdonovan.github.io/kb-mcp/usage/hybrid-search.html) — keyword precision isn't
 lost, it's augmented. Still fully local, no API keys.
 
 ## Where kb-mcp Fits
@@ -47,13 +51,13 @@ for working memory and kb-mcp for its knowledge base. See the full
 
 ## Features
 
-- **6 MCP tools** — list, search, get, context briefing, write, reindex
+- **10 MCP tools** — list, search, get, context briefing, write, reindex, digest, query, export, health
 - **CLI parity** — every MCP tool works as a CLI subcommand
 - **RON configuration** — typed, Rust-native config with comments
 - **Collection model** — multiple collections with sections, descriptions, and writable flags
 - **Token-efficient** — `kb_context` returns frontmatter + summary without the full body
 - **Write-back** — `kb_write` creates notes with proper frontmatter in writable collections
-- **~1,700 lines of Rust** — small, auditable, single-binary
+- **Small and local** — two binaries, no services or databases
 
 ## Built With Itself
 
@@ -64,7 +68,7 @@ gives you a working knowledge base out of the box.
 
 This isn't a demo afterthought. The project is both the tool and a practical
 example of using it. The vault documents AI agent memory patterns. The
-[Researcher Agent](agents/researcher.md) uses kb-mcp to research topics
+[Researcher Agent](https://ttdonovan.github.io/kb-mcp/development/agents/researcher.html) uses kb-mcp to research topics
 and curate findings back into the vault. Every feature gets consumed by
 the project itself — if it doesn't work well for us, it won't work well
 for anyone.
@@ -73,23 +77,21 @@ Point an AI agent at this repo with kb-mcp as an MCP server and it can
 search the docs, read architecture decisions, and understand how the
 project works — using the very tool the project builds.
 
-## Quick Start
+## Getting Started
 
-```sh
-# Install both binaries (CLI `kb` + MCP server `kb-mcp`)
-just install
+Prebuilt binaries for Linux and macOS are on each [GitHub Release](https://github.com/ttdonovan/kb-mcp/releases). Installing, configuring collections and registering the MCP server are in the technical book: start with [Configuration](https://ttdonovan.github.io/kb-mcp/usage/configuration.html) and [MCP Server](https://ttdonovan.github.io/kb-mcp/usage/mcp-server.html).
 
-# Or install individually
-cargo install --path crates/kb-cli          # installs `kb`
-cargo install --path crates/kb-mcp-server   # installs `kb-mcp`
+## Read Next
 
-# Create config
-cp collections.example.ron collections.ron
-# Edit paths to point at your markdown directories
+| If you want | Read |
+|---|---|
+| What kb-mcp is for, and what it will not be | [Goals](goals.md) |
+| What is built and what comes next | [Roadmap](roadmap.md) |
+| How it compares with other projects | [Landscape](landscape/overview.md) |
+| To install, configure and use it, or work on it | [The technical book](https://ttdonovan.github.io/kb-mcp/) |
 
-# Use as CLI
-kb list-sections
-kb search --query "your query"
+## About This Book
 
-# Use as MCP server (register in .mcp.json — binary name is still `kb-mcp`)
-```
+This is the product book, for people deciding whether to use kb-mcp. The technical book is the reference: where the two differ, it is right. It is published at [ttdonovan.github.io/kb-mcp](https://ttdonovan.github.io/kb-mcp/).
+
+Agents: read the technical book's [`llms.txt`](https://ttdonovan.github.io/kb-mcp/llms.txt) first. This book has its own [`llms.txt`](llms.txt) for the case for kb-mcp and the landscape.

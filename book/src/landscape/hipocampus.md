@@ -1,3 +1,7 @@
+---
+description: hipocampus, a memory harness for agents: what it does, how it compares with kb-mcp, and what to learn from it
+---
+
 # hipocampus
 
 **Source:** [github.com/kevin-hs-sohn/hipocampus](https://github.com/kevin-hs-sohn/hipocampus)

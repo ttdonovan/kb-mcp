@@ -1,3 +1,7 @@
+---
+description: Read before installing kb-mcp's Claude Code plugins or changing them: the kb-mcp plugin for users and the kb-mcp-dev plugin for contributors
+---
+
 # Claude Code Plugins
 
 This repository is a Claude Code plugin marketplace with two plugins, both under `plugins/`:

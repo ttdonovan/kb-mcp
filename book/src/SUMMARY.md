@@ -4,22 +4,6 @@
 [Goals](goals.md)
 [Roadmap](roadmap.md)
 
-# Usage
-
-- [Configuration](usage/configuration.md)
-- [MCP Server](usage/mcp-server.md)
-- [CLI](usage/cli.md)
-- [Hybrid Search](usage/hybrid-search.md)
-
-# Agents
-
-- [Researcher](agents/researcher.md)
-
-# Reference
-
-- [Tools](reference/tools.md)
-- [RON Schema](reference/ron-schema.md)
-
 # Landscape
 
 - [Overview](landscape/overview.md)
@@ -33,12 +17,3 @@
 - [prism-mcp](landscape/prism-mcp.md)
 - [Agentic Design Patterns](landscape/agentic-design-patterns.md)
 - [Review Process](landscape/process.md)
-
-# Development
-
-- [Architecture](development/architecture.md)
-- [Tooling & Methodology](development/methodology.md)
-- [Adding Tools](development/adding-tools.md)
-- [Claude Code Plugins](development/plugins.md)
-- [Reviewing a Change](development/reviewing.md)
-- [ZeroClaw Researcher Agent](development/agents/researcher.md)

@@ -1,3 +1,7 @@
+---
+description: Ori-Mnemos, a persistent cognitive memory system for agents: what it does, how it compares with kb-mcp, and what to learn from it
+---
+
 # Ori-Mnemos
 
 **Source:** [github.com/aayoawoyemi/Ori-Mnemos](https://github.com/aayoawoyemi/Ori-Mnemos)

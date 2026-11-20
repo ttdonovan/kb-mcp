@@ -1,3 +1,7 @@
+---
+description: Read to run kb-mcp as an MCP server for an agent: registering it in .mcp.json and what happens at startup
+---
+
 # MCP Server
 
 kb-mcp runs as an MCP server when invoked with no arguments. It communicates

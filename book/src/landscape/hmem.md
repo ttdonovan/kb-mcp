@@ -1,3 +1,7 @@
+---
+description: hmem, an MCP server with layered SQLite memory: what it does, how it compares with kb-mcp, and what to learn from it
+---
+
 # hmem
 
 **Source:** [github.com/Bumblebiber/hmem](https://github.com/Bumblebiber/hmem)

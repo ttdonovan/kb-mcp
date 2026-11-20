@@ -1,3 +1,7 @@
+---
+description: Look up a collections.ron field: the full schema with every field, its default, and the Rust types it deserializes into
+---
+
 # RON Schema
 
 The full `collections.ron` schema with all fields:

@@ -2,7 +2,7 @@
 
 MCP server + CLI for markdown knowledge bases.
 
-[Read the Book](https://ttdonovan.github.io/kb-mcp/) | [GitHub](https://github.com/ttdonovan/kb-mcp)
+[Read the Docs](https://ttdonovan.github.io/kb-mcp/) ([for agents: llms.txt](https://ttdonovan.github.io/kb-mcp/llms.txt)) | [Why kb-mcp](https://ttdonovan.github.io/kb-mcp/product/) | [GitHub](https://github.com/ttdonovan/kb-mcp)
 
 Indexes markdown collections into a searchable BM25 index and exposes them
 as [MCP](https://modelcontextprotocol.io/) tools. Configured entirely via
@@ -182,10 +182,20 @@ kb reindex
 
 ## Documentation
 
-Project documentation is built with [mdBook](https://rust-lang.github.io/mdBook/)
-and uses [Mermaid](https://mermaid.js.org/) for architecture diagrams.
+There are two [mdBook](https://rust-lang.github.io/mdBook/) books, both built with [mdbook-llms](https://github.com/ttdonovan/mdbook-llms) so agents can read them as `llms.txt` and plain Markdown:
 
-### Prerequisites
+- [The technical book](https://ttdonovan.github.io/kb-mcp/), in `docs/src/`: install, configure, use, every tool and config field, and how to work on kb-mcp. Agents start at its [`llms.txt`](https://ttdonovan.github.io/kb-mcp/llms.txt).
+- [The product book](https://ttdonovan.github.io/kb-mcp/product/), in `book/src/`: why kb-mcp exists, its goals and roadmap, and how it compares with other projects.
+
+```sh
+just docs setup   # install mdBook, mdbook-mermaid and mdbook-llms, once
+just docs         # build the technical book into target/docs/html/
+just docs serve   # preview it with live reload
+just docs check   # fail on a warning, an empty chapter or a broken link
+just book         # build the product book into target/book/html/ (also: serve, check)
+```
+
+## Prerequisites
 
 ```sh
 cargo install mdbook
@@ -246,8 +256,8 @@ just fmt          # Format all crates
 just ci           # The CI gate: fmt, clippy, tests, audit, crate age
 just run <args>   # Run CLI (e.g., just run list-sections)
 just run-server   # Run MCP server
-just book-build   # Build documentation
-just book-serve   # Serve docs with live reload
+just docs         # Build the technical book (just book: the product book)
+just docs check   # Check it: warnings, empty chapters, broken links
 just claude       # Claude Code with the kb-mcp-dev plugin loaded
 ```
 

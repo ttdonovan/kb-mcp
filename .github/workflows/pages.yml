@@ -1,0 +1,97 @@
+name: Deploy docs
+
+# Publishes the technical book (docs/) at the site's root and the product book (book/) under /product/.
+on:
+  push:
+    branches: [main]
+    paths: &book-paths
+      - "docs/**"
+      - "book/**"
+      - "agents/researcher/README.md"
+      - "scripts/ci/docs-check.sh"
+      - ".github/workflows/pages.yml"
+  # Check only, to catch a broken book before merge
+  pull_request:
+    paths: *book-paths
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One deploy at a time; let an in-progress deploy finish
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  MDBOOK_VERSION: v0.5.4
+  MDBOOK_MERMAID_VERSION: v0.17.1
+  # mdbook-llms v0.4.0, pinned by commit
+  MDBOOK_LLMS_REV: 237bbd58b8b8f69e27e8c1c9338307e27f648116
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      # Actions are pinned by commit SHA; the tag is only a comment.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install the toolchain from rust-toolchain.toml
+        run: rustup toolchain install
+
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+
+      - name: Install mdBook, mdbook-mermaid and mdbook-llms
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          curl -fsSL "https://github.com/rust-lang/mdBook/releases/download/$MDBOOK_VERSION/mdbook-$MDBOOK_VERSION-x86_64-unknown-linux-gnu.tar.gz" | tar -xz -C "$HOME/.local/bin"
+          curl -fsSL "https://github.com/badboy/mdbook-mermaid/releases/download/$MDBOOK_MERMAID_VERSION/mdbook-mermaid-$MDBOOK_MERMAID_VERSION-x86_64-unknown-linux-gnu.tar.gz" | tar -xz -C "$HOME/.local/bin"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          cargo install --locked --git https://github.com/ttdonovan/mdbook-llms --rev "$MDBOOK_LLMS_REV"
+
+      - name: Check
+        run: |
+          scripts/ci/docs-check.sh docs
+          scripts/ci/docs-check.sh book
+
+      # Links in the site and its llms files use the Pages URL; local builds stay relative.
+      - name: Build the technical book
+        if: github.event_name != 'pull_request'
+        env:
+          MDBOOK_OUTPUT__HTML__SITE_URL: /kb-mcp/
+          MDBOOK_OUTPUT__LLMS__SITE_URL: https://ttdonovan.github.io/kb-mcp/
+        run: mdbook build docs
+
+      - name: Build the product book under /product/
+        if: github.event_name != 'pull_request'
+        env:
+          MDBOOK_OUTPUT__HTML__SITE_URL: /kb-mcp/product/
+          MDBOOK_OUTPUT__LLMS__SITE_URL: https://ttdonovan.github.io/kb-mcp/product/
+        run: |
+          mdbook build book
+          cp -R target/book/html target/docs/html/product
+
+      - if: github.event_name != 'pull_request'
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+
+      - if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: target/docs/html
+
+  deploy:
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

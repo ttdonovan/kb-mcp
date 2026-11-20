@@ -1,3 +1,7 @@
+---
+description: How kb-mcp is developed with Claude Code and the Compound Engineering workflow, and where brainstorms, plans and solutions are kept
+---
+
 # Development Tooling & Methodology
 
 This project doubles as a reference implementation for AI-assisted
@@ -45,7 +49,7 @@ remediation.
 | `/ce:plan` | Transform concepts into detailed, executable implementation strategies |
 | `/ce:work` | Execute plans with feature branches, worktrees, and task tracking |
 | `/ce:review` | Multi-agent code evaluation — security, architecture, performance, simplicity |
-| `/ce:compound` | Capture learnings into `docs/solutions/` so future work is faster |
+| `/ce:compound` | Capture learnings into `docs/project/solutions/` so future work is faster |
 
 **How we use it in this project:**
 
@@ -58,7 +62,7 @@ remediation.
   config format, and ONNX model delivery
 
 **The compounding part:** Brainstorms and plans are preserved in
-`docs/brainstorms/` and `docs/plans/`. Each document captures decisions,
+`docs/project/brainstorms/` and `docs/project/plans/`. Each document captures decisions,
 alternatives considered, and lessons learned — so future sessions start
 with context instead of rediscovering it.
 
@@ -88,7 +92,7 @@ Every significant feature follows this cycle:
 **1. Brainstorm** (`/ce:brainstorm`)
 
 Explore what to build through collaborative dialogue. Output is a
-brainstorm document in `docs/brainstorms/` capturing decisions, rejected
+brainstorm document in `docs/project/brainstorms/` capturing decisions, rejected
 alternatives, and scope boundaries.
 
 **2. Plan** (`/ce:plan`)
@@ -99,7 +103,7 @@ Transform the brainstorm into an implementation plan with:
 - Open questions with defaults
 - API references from research
 
-Output is a plan document in `docs/plans/`.
+Output is a plan document in `docs/project/plans/`.
 
 **3. Work** (`/ce:work`)
 
@@ -116,7 +120,7 @@ and simplicity. Used for complex or risky changes.
 
 **5. Compound** (`/ce:compound`)
 
-Capture what was learned into `docs/solutions/` so the next time a
+Capture what was learned into `docs/project/solutions/` so the next time a
 similar problem arises, the solution is already documented.
 
 ### Feature Branch Pattern
@@ -192,7 +196,7 @@ This project was built in a single extended Claude Code session:
    `vec` feature. Local ONNX embeddings with RRF fusion.
 
 Each phase followed the brainstorm → plan → work loop. All brainstorms
-and plans are in `docs/brainstorms/` and `docs/plans/`.
+and plans are in `docs/project/brainstorms/` and `docs/project/plans/`.
 
 ## Why This Matters
 

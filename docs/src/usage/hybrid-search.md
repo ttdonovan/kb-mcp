@@ -1,3 +1,7 @@
+---
+description: Read to add semantic search: building with the hybrid feature, the local embedding model it needs, and how BM25 and vector results are fused
+---
+
 # Hybrid Search
 
 By default, kb-mcp uses BM25 keyword search via Tantivy. Enable the

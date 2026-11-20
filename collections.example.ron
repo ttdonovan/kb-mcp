@@ -20,20 +20,33 @@
         ),
         (
             name: "docs",
-            path: "docs",
-            description: "Project documentation (architecture, goals)",
-            writable: false,
-            sections: [],
-        ),
-        (
-            name: "book",
-            path: "book/src",
-            description: "mdBook pages (usage guides, reference, development)",
+            path: "docs/src",
+            description: "Technical book (usage guides, reference, development)",
             writable: false,
             sections: [
                 (prefix: "usage", description: "Configuration, MCP server, and CLI guides"),
                 (prefix: "reference", description: "Tool and RON schema reference"),
                 (prefix: "development", description: "Architecture and contributing guides"),
+            ],
+        ),
+        (
+            name: "book",
+            path: "book/src",
+            description: "Product book (introduction, goals, roadmap, landscape)",
+            writable: false,
+            sections: [
+                (prefix: "landscape", description: "Related projects and how kb-mcp compares"),
+            ],
+        ),
+        (
+            name: "project",
+            path: "docs/project",
+            description: "Project records (brainstorms, plans, ideas, solutions)",
+            writable: false,
+            sections: [
+                (prefix: "brainstorms", description: "Explorations before planning"),
+                (prefix: "plans", description: "Implementation plans"),
+                (prefix: "solutions", description: "Lessons learned from built features"),
             ],
         ),
     ],

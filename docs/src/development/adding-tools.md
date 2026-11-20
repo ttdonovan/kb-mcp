@@ -1,3 +1,7 @@
+---
+description: Read before adding an MCP tool: the steps, a template, and the CLI command that must come with it
+---
+
 # Adding Tools
 
 ## Steps

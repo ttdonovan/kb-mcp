@@ -1,3 +1,7 @@
+---
+description: Read before changing kb-mcp's code: the three crates, how indexing, the .mv2 stores and search fit together, and the design decisions behind them
+---
+
 # Architecture
 
 ## Overview
@@ -295,7 +299,7 @@ that moves (e.g. a plugin update) reuses its index; this needs a
 - **Deduplication:** search results are deduplicated by URI — one result
   per document, highest-scoring chunk wins
 
-The `Index` (Vec<Document>) continues to handle metadata operations
+The `Index` (`Vec<Document>`) continues to handle metadata operations
 (exact path lookup, frontmatter retrieval, section counting). Memvid is
 the search layer only — this two-layer design keeps the architecture
 simple while gaining persistent, incremental search.
