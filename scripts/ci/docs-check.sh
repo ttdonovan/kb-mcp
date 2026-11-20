@@ -21,6 +21,12 @@ done < <(sed -n 's/^warning: mdbook-llms: broken link in \(.*\): \(.*\)$/\1\t\2/
 
 if grep -v 'mdbook-llms: broken link' <<< "$log" | grep -E 'ERROR|WARN|warning'; then fail=1; fi
 
+# An unquoted description with ": " is invalid YAML: mdbook-llms reads it, kb-mcp and Obsidian drop it.
+while IFS= read -r unquoted; do
+    echo "unquoted description (quote it): $unquoted"
+    fail=1
+done < <(grep -rn '^description: [^"]' "$book/src" --include='*.md')
+
 # A missing include comes out empty, and mdBook says nothing.
 while IFS= read -r empty; do
     echo "empty chapter: $empty"

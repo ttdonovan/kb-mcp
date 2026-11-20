@@ -1,5 +1,5 @@
 ---
-description: How kb-mcp is developed with Claude Code and the Compound Engineering workflow, and where brainstorms, plans and solutions are kept
+description: "How kb-mcp is developed with Claude Code and the Compound Engineering workflow, and where brainstorms, plans and solutions are kept"
 ---
 
 # Development Tooling & Methodology

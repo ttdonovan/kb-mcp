@@ -1,5 +1,5 @@
 ---
-description: What is built, what comes next, and when each planned phase makes sense
+description: "What is built, what comes next, and when each planned phase makes sense"
 ---
 
 # Roadmap

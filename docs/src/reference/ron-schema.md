@@ -1,5 +1,5 @@
 ---
-description: Look up a collections.ron field: the full schema with every field, its default, and the Rust types it deserializes into
+description: "Look up a collections.ron field: the full schema with every field, its default, and the Rust types it deserializes into"
 ---
 
 # RON Schema

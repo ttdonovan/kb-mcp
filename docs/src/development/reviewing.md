@@ -1,5 +1,5 @@
 ---
-description: Read before reviewing a change or acting on a review: what the code and docs reviewers check, which doc goes with which code, the report and the review log
+description: "Read before reviewing a change or acting on a review: what the code and docs reviewers check, which doc goes with which code, the report and the review log"
 ---
 
 # Reviewing a Change

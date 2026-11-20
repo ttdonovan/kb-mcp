@@ -1,5 +1,5 @@
 ---
-description: mengram, a cloud memory service for agents: what it does, how it compares with kb-mcp, and what to learn from it
+description: "mengram, a cloud memory service for agents: what it does, how it compares with kb-mcp, and what to learn from it"
 ---
 
 # mengram

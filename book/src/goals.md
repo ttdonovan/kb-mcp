@@ -1,5 +1,5 @@
 ---
-description: Read to learn why kb-mcp exists, who it is for, and what it deliberately is not
+description: "Read to learn why kb-mcp exists, who it is for, and what it deliberately is not"
 ---
 
 # Goals

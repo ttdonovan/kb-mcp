@@ -1,5 +1,5 @@
 ---
-description: Read before changing kb-mcp's code: the three crates, how indexing, the .mv2 stores and search fit together, and the design decisions behind them
+description: "Read before changing kb-mcp's code: the three crates, how indexing, the .mv2 stores and search fit together, and the design decisions behind them"
 ---
 
 # Architecture

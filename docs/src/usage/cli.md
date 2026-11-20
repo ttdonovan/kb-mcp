@@ -1,5 +1,5 @@
 ---
-description: Read to use the kb CLI from a shell or a script: every command, its flags, and its JSON output
+description: "Read to use the kb CLI from a shell or a script: every command, its flags, and its JSON output"
 ---
 
 # CLI

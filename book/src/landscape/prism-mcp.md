@@ -1,5 +1,5 @@
 ---
-description: prism-mcp, persistent session memory for agents: what it does, how it compares with kb-mcp, and what to learn from it
+description: "prism-mcp, persistent session memory for agents: what it does, how it compares with kb-mcp, and what to learn from it"
 ---
 
 # prism-mcp

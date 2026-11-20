@@ -10,7 +10,7 @@ The technical book, built for agents first: `llms.txt` (an index with each chapt
 
 ## Writing a chapter
 
-- Start with frontmatter: `description: ...` in one line, saying when to read the chapter in the reader's terms. It becomes the chapter's line in `llms.txt`.
+- Start with frontmatter: `description: "..."` in one line, in double quotes (unquoted, a `: ` inside makes it invalid YAML, which kb-mcp and Obsidian drop; `just docs check` fails on it), saying when to read the chapter in the reader's terms. It becomes the chapter's line in `llms.txt`.
 - Add it to `src/SUMMARY.md` and, if a reader would look for it, to the table in `src/README.md`; an unlisted file is not in the book.
 - One physical line per paragraph, list item and table row; never hard-wrap prose in a new chapter, and keep an existing chapter's wrapping when editing it. No em dashes; use a colon, a comma or a hyphen.
 - Plain and exact: name the tool, parameter, field, flag or path. Say what is not covered rather than implying it is. State a fact once and link to the chapter that owns it.

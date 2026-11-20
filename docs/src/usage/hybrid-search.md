@@ -1,5 +1,5 @@
 ---
-description: Read to add semantic search: building with the hybrid feature, the local embedding model it needs, and how BM25 and vector results are fused
+description: "Read to add semantic search: building with the hybrid feature, the local embedding model it needs, and how BM25 and vector results are fused"
 ---
 
 # Hybrid Search
