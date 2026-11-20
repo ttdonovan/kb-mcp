@@ -71,6 +71,9 @@ pub fn load_hashes(path: &Path) -> HashIndex {
 }
 
 /// Save content hashes to the sidecar file.
+///
+/// Written via temp file + rename so a concurrent reader in another process
+/// never sees a half-written sidecar.
 pub fn save_hashes(path: &Path, hashes: &HashIndex) -> Result<()> {
     let mut lines: Vec<String> = hashes
         .iter()
@@ -78,8 +81,14 @@ pub fn save_hashes(path: &Path, hashes: &HashIndex) -> Result<()> {
         .collect();
     lines.sort();
 
-    std::fs::write(path, lines.join("\n"))
-        .with_context(|| format!("failed to write hashes: {}", path.display()))
+    let tmp = temp_sibling(path);
+    let result = std::fs::write(&tmp, lines.join("\n"))
+        .and_then(|()| std::fs::rename(&tmp, path))
+        .with_context(|| format!("failed to write hashes: {}", path.display()));
+    if result.is_err() {
+        let _ = std::fs::remove_file(&tmp);
+    }
+    result
 }
 
 /// Compute blake3 hash of file content.
@@ -158,9 +167,11 @@ pub fn compute_diff(current: &HashIndex, stored: &HashIndex) -> SyncDiff {
 
 /// Sync a collection's .mv2 file against the filesystem.
 ///
-/// Opens or creates the .mv2 file, computes the diff against the sidecar,
-/// and ingests new/changed documents. When an embedder is provided (hybrid
-/// feature), documents are embedded for vector search alongside BM25.
+/// Several servers may share one cache dir, so the live `.mv2` is never
+/// written, truncated or deleted in place: changes are built in a private temp
+/// file and renamed over it, and the returned handle is always read-only
+/// (shared lock). Other processes keep searching their own snapshot until
+/// they resync.
 pub fn sync_collection(
     cache_dir: &Path,
     collection: &crate::config::ResolvedCollection,
@@ -174,73 +185,118 @@ pub fn sync_collection(
     let hashes_file = hashes_path(cache_dir, collection);
     let stored_hashes = load_hashes(&hashes_file);
     let diff = compute_diff(current_hashes, &stored_hashes);
-
-    // Open or create .mv2
-    let mut mem = if mv2.exists() && !diff.is_fresh {
-        match memvid_core::Memvid::open(&mv2) {
-            Ok(m) => m,
-            Err(e) => {
-                tracing::warn!("corrupted .mv2, rebuilding: {}", e);
-                let _ = std::fs::remove_file(&mv2);
-                memvid_core::Memvid::create(&mv2)
-                    .with_context(|| format!("failed to create .mv2: {}", mv2.display()))?
-            }
-        }
-    } else {
-        memvid_core::Memvid::create(&mv2)
-            .with_context(|| format!("failed to create .mv2: {}", mv2.display()))?
-    };
-
     let changes = diff.to_add.len() + diff.to_remove.len();
 
-    if changes == 0 {
-        save_hashes(&hashes_file, current_hashes)?;
-        return Ok((mem, 0));
+    if changes == 0 && mv2.exists() {
+        match memvid_core::Memvid::open_read_only(&mv2) {
+            Ok(mem) => {
+                save_hashes(&hashes_file, current_hashes)?;
+                return Ok((mem, 0));
+            }
+            Err(memvid_core::MemvidError::Lock(e)) => tracing::warn!(
+                "{} is locked by another process, building a fresh copy: {}",
+                mv2.display(),
+                e
+            ),
+            Err(e) => tracing::warn!("unreadable {}, rebuilding: {}", mv2.display(), e),
+        }
     }
 
-    let needs_full_rebuild = !diff.to_remove.is_empty() && !diff.is_fresh;
-
-    if needs_full_rebuild {
-        drop(mem);
-        let _ = std::fs::remove_file(&mv2);
-        mem = memvid_core::Memvid::create(&mv2)
-            .with_context(|| format!("failed to recreate .mv2: {}", mv2.display()))?;
-
-        let coll_docs: Vec<&crate::types::Document> = documents
+    let coll_docs = |only: Option<&[String]>| -> Vec<&crate::types::Document> {
+        documents
             .iter()
             .filter(|d| d.collection == collection.name)
-            .collect();
+            .filter(|d| only.is_none_or(|paths| paths.contains(&d.path)))
+            .collect()
+    };
 
-        ingest_docs(
-            &mut mem,
+    // Append to a copy only when the existing store is a valid base for the diff.
+    let can_append = changes > 0 && !diff.is_fresh && diff.to_remove.is_empty() && mv2.exists();
+    let appended = can_append
+        && match build_store(
+            &mv2,
+            true,
             &collection.name,
-            &coll_docs,
+            &coll_docs(Some(&diff.to_add)),
+            #[cfg(feature = "hybrid")]
+            embedder,
+        ) {
+            Ok(()) => true,
+            Err(e) => {
+                tracing::warn!("cannot append to {}, rebuilding: {:#}", mv2.display(), e);
+                false
+            }
+        };
+
+    if !appended {
+        build_store(
+            &mv2,
+            false,
+            &collection.name,
+            &coll_docs(None),
             #[cfg(feature = "hybrid")]
             embedder,
         )?;
-    } else {
-        let docs_to_add: Vec<&crate::types::Document> = documents
-            .iter()
-            .filter(|d| d.collection == collection.name && diff.to_add.contains(&d.path))
-            .collect();
-
-        if !docs_to_add.is_empty() {
-            ingest_docs(
-                &mut mem,
-                &collection.name,
-                &docs_to_add,
-                #[cfg(feature = "hybrid")]
-                embedder,
-            )?;
-        }
     }
-
-    mem.commit()
-        .with_context(|| format!("failed to commit .mv2: {}", mv2.display()))?;
 
     save_hashes(&hashes_file, current_hashes)?;
 
+    let mem = memvid_core::Memvid::open_read_only(&mv2)
+        .with_context(|| format!("failed to open .mv2: {}", mv2.display()))?;
     Ok((mem, changes))
+}
+
+/// Build a store in a private temp file and atomically rename it over `mv2`.
+/// With `from_existing`, the current `mv2` is copied first and `docs` appended.
+fn build_store(
+    mv2: &Path,
+    from_existing: bool,
+    collection_name: &str,
+    docs: &[&crate::types::Document],
+    #[cfg(feature = "hybrid")] embedder: &memvid_core::LocalTextEmbedder,
+) -> Result<()> {
+    let tmp = temp_sibling(mv2);
+    let result = (|| -> Result<()> {
+        let mut mem = if from_existing {
+            std::fs::copy(mv2, &tmp)
+                .with_context(|| format!("failed to copy .mv2: {}", mv2.display()))?;
+            memvid_core::Memvid::open(&tmp)
+                .with_context(|| format!("failed to open .mv2 copy: {}", tmp.display()))?
+        } else {
+            memvid_core::Memvid::create(&tmp)
+                .with_context(|| format!("failed to create .mv2: {}", tmp.display()))?
+        };
+
+        ingest_docs(
+            &mut mem,
+            collection_name,
+            docs,
+            #[cfg(feature = "hybrid")]
+            embedder,
+        )?;
+        mem.commit()
+            .with_context(|| format!("failed to commit .mv2: {}", tmp.display()))?;
+        drop(mem);
+
+        std::fs::rename(&tmp, mv2)
+            .with_context(|| format!("failed to replace .mv2: {}", mv2.display()))
+    })();
+
+    if result.is_err() {
+        let _ = std::fs::remove_file(&tmp);
+    }
+    result
+}
+
+/// Unique path next to `path`, so concurrent writers (other processes, or
+/// threads in this one) never share a temp file. Keeps the `.mv2` extension.
+fn temp_sibling(path: &Path) -> PathBuf {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    static COUNTER: AtomicU64 = AtomicU64::new(0);
+
+    let n = COUNTER.fetch_add(1, Ordering::Relaxed);
+    let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("tmp");
+    path.with_extension(format!("{}-{}.tmp.{}", std::process::id(), n, ext))
 }
 
 /// Batch-ingest documents into a Memvid handle. When hybrid feature is
