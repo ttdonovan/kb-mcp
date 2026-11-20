@@ -6,6 +6,11 @@
 //! though they were indexed and retrievable by exact path. They now carry
 //! the `ROOT_SECTION` sentinel so every section-shaped view includes them.
 
+#![expect(
+    clippy::unwrap_used,
+    reason = "a test: a failed setup step should fail it"
+)]
+
 use std::path::PathBuf;
 
 use kb_core::config::{IndexNames, ResolvedCollection, SectionDef};

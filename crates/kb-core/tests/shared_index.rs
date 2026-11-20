@@ -5,6 +5,12 @@
 //! handle's lock nor mutate the file that handle has open.
 
 #![cfg(not(feature = "hybrid"))]
+#![expect(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::indexing_slicing,
+    reason = "a test: a failed setup step should fail it"
+)]
 
 use std::collections::HashMap;
 use std::path::PathBuf;

@@ -108,9 +108,8 @@ fn scan_dir(
     docs: &mut Vec<Document>,
     hashes: &mut store::HashIndex,
 ) {
-    let entries = match std::fs::read_dir(dir) {
-        Ok(e) => e,
-        Err(_) => return,
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return;
     };
 
     for entry in entries.flatten() {
@@ -203,35 +202,30 @@ type ParsedFrontmatter = (
 /// A malformed block yields no fields rather than failing the document, but
 /// its error is kept so `kb_health` can report it instead of hiding it.
 fn parse_frontmatter(content: &str) -> ParsedFrontmatter {
-    if !content.starts_with("---") {
+    let Some((yaml_str, body)) = content
+        .strip_prefix("---")
+        .and_then(|after| after.split_once("\n---"))
+    else {
         return (HashMap::new(), vec![], content.to_string(), None);
-    }
+    };
 
-    let after_first = &content[3..];
-    if let Some(end) = after_first.find("\n---") {
-        let yaml_str = &after_first[..end];
-        let body = &after_first[end + 4..];
+    // An empty block is valid; serde_yaml would reject it as a map.
+    let (fm, error): (HashMap<String, serde_yaml::Value>, Option<String>) =
+        if yaml_str.trim().is_empty() {
+            (HashMap::new(), None)
+        } else {
+            match serde_yaml::from_str(yaml_str) {
+                Ok(fm) => (fm, None),
+                Err(e) => (HashMap::new(), Some(e.to_string())),
+            }
+        };
 
-        // An empty block is valid; serde_yaml would reject it as a map.
-        let (fm, error): (HashMap<String, serde_yaml::Value>, Option<String>) =
-            if yaml_str.trim().is_empty() {
-                (HashMap::new(), None)
-            } else {
-                match serde_yaml::from_str(yaml_str) {
-                    Ok(fm) => (fm, None),
-                    Err(e) => (HashMap::new(), Some(e.to_string())),
-                }
-            };
+    let tags = fm
+        .get("tags")
+        .and_then(|v| serde_yaml::from_value::<Vec<String>>(v.clone()).ok())
+        .unwrap_or_default();
 
-        let tags = fm
-            .get("tags")
-            .and_then(|v| serde_yaml::from_value::<Vec<String>>(v.clone()).ok())
-            .unwrap_or_default();
-
-        (fm, tags, body.trim_start_matches('\n').to_string(), error)
-    } else {
-        (HashMap::new(), vec![], content.to_string(), None)
-    }
+    (fm, tags, body.trim_start_matches('\n').to_string(), error)
 }
 
 /// Derive sections from document counts, enriched with descriptions from RON config.
@@ -249,9 +243,10 @@ fn build_sections(documents: &[Document], collections: &[ResolvedCollection]) ->
     // root-level files carry the ROOT_SECTION sentinel.
     let mut counts: HashMap<(String, String), usize> = HashMap::new();
     for doc in documents {
-        *counts
+        let count = counts
             .entry((doc.collection.clone(), doc.section.clone()))
-            .or_default() += 1;
+            .or_default();
+        *count = count.saturating_add(1);
     }
 
     let mut sections: Vec<Section> = counts

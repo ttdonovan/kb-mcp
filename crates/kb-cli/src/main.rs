@@ -134,7 +134,7 @@ enum Command {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
-    let ctx = kb_core::init(cli.config.as_deref()).await?;
+    let ctx = kb_core::init(cli.config.as_deref())?;
     run(
         cli.command,
         &ctx.index,

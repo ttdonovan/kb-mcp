@@ -4,6 +4,11 @@
 //! BM25 build only: a hybrid build needs a local embedding model.
 
 #![cfg(not(feature = "hybrid"))]
+#![expect(
+    clippy::unwrap_used,
+    clippy::indexing_slicing,
+    reason = "a test: a failed step or a missing JSON field should fail it"
+)]
 
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
@@ -52,7 +57,7 @@ impl Server {
     }
 
     /// Send a request and return the response with the same id.
-    fn request(&mut self, id: u64, method: &str, params: Value) -> Value {
+    fn request(&mut self, id: u64, method: &str, params: &Value) -> Value {
         self.send(&json!({"jsonrpc": "2.0", "id": id, "method": method, "params": params}));
         loop {
             let mut line = String::new();
@@ -67,11 +72,11 @@ impl Server {
         }
     }
 
-    fn call(&mut self, id: u64, tool: &str, arguments: Value) -> Value {
+    fn call(&mut self, id: u64, tool: &str, arguments: &Value) -> Value {
         let response = self.request(
             id,
             "tools/call",
-            json!({"name": tool, "arguments": arguments}),
+            &json!({"name": tool, "arguments": arguments}),
         );
         response["result"].clone()
     }
@@ -111,7 +116,7 @@ fn stdio_round_trip() {
     let init = server.request(
         1,
         "initialize",
-        json!({
+        &json!({
             "protocolVersion": "2025-06-18",
             "capabilities": {},
             "clientInfo": {"name": "stdio-test", "version": "0"},
@@ -123,7 +128,7 @@ fn stdio_round_trip() {
     server.send(&json!({"jsonrpc": "2.0", "method": "notifications/initialized"}));
 
     // Tool names and parameters are kb-mcp's public interface (CONTRIBUTING.md, Versioning).
-    let listed = server.request(2, "tools/list", json!({}));
+    let listed = server.request(2, "tools/list", &json!({}));
     let mut tools: Vec<(String, Vec<String>)> = listed["result"]["tools"]
         .as_array()
         .unwrap()
@@ -184,16 +189,16 @@ fn stdio_round_trip() {
     .collect();
     assert_eq!(tools, expected);
 
-    let sections = text_json(&server.call(3, "list_sections", json!({})));
+    let sections = text_json(&server.call(3, "list_sections", &json!({})));
     assert_eq!(sections[0]["name"], "guides");
     assert_eq!(sections[0]["description"], "How-to guides");
     assert_eq!(sections[0]["doc_count"], 1);
 
-    let found = text_json(&server.call(4, "search", json!({"query": "backoff"})));
+    let found = text_json(&server.call(4, "search", &json!({"query": "backoff"})));
     assert_eq!(found["results"][0]["path"], "guides/rate-limits.md");
     assert_eq!(found["results"][0]["title"], "Rate Limits");
 
-    let doc = text_json(&server.call(5, "get_document", json!({"path": "guides/rate-limits.md"})));
+    let doc = text_json(&server.call(5, "get_document", &json!({"path": "guides/rate-limits.md"})));
     assert!(
         doc["content"]
             .as_str()
@@ -201,13 +206,13 @@ fn stdio_round_trip() {
             .contains("exponential backoff")
     );
 
-    let missing = server.call(6, "get_document", json!({"path": "no/such.md"}));
+    let missing = server.call(6, "get_document", &json!({"path": "no/such.md"}));
     assert_eq!(missing["isError"], true);
 
     let read_only = server.call(
         7,
         "kb_write",
-        json!({"collection": "notes", "title": "x", "body": "y"}),
+        &json!({"collection": "notes", "title": "x", "body": "y"}),
     );
     assert_eq!(read_only["isError"], true);
 

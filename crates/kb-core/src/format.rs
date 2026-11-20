@@ -4,7 +4,8 @@
 //! Both MCP tools and CLI commands use these same formatters, ensuring
 //! identical JSON output regardless of transport.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
+use std::fmt::Write as _;
 
 use serde::Serialize;
 
@@ -152,16 +153,17 @@ pub fn format_context(doc: &Document) -> String {
 pub fn format_search(query: &str, results: &[SearchResult], documents: &[Document]) -> String {
     let result_outputs: Vec<SearchResultOutput> = results
         .iter()
-        .map(|r| {
-            let doc = &documents[r.doc_index];
-            SearchResultOutput {
+        // Results index into the same `documents`; a stale index is skipped, not a panic.
+        .filter_map(|r| {
+            let doc = documents.get(r.doc_index)?;
+            Some(SearchResultOutput {
                 path: doc.path.clone(),
                 title: doc.title.clone(),
                 section: doc.section.clone(),
                 collection: doc.collection.clone(),
                 score: (r.score * 1000.0).round() / 1000.0,
                 excerpt: r.excerpt.clone(),
-            }
+            })
         })
         .collect();
 
@@ -240,15 +242,10 @@ pub fn yaml_value_to_string(v: &serde_yaml::Value) -> String {
     match v {
         serde_yaml::Value::String(s) => s.clone(),
         serde_yaml::Value::Bool(b) => b.to_string(),
-        serde_yaml::Value::Number(n) => {
-            if let Some(i) = n.as_i64() {
-                i.to_string()
-            } else if let Some(f) = n.as_f64() {
-                f.to_string()
-            } else {
-                String::new()
-            }
-        }
+        serde_yaml::Value::Number(n) => n.as_i64().map_or_else(
+            || n.as_f64().map_or_else(String::new, |f| f.to_string()),
+            |i| i.to_string(),
+        ),
         serde_yaml::Value::Null => "null".to_string(),
         other => serde_json::to_string(other).unwrap_or_default(),
     }
@@ -263,7 +260,9 @@ pub fn format_digest(
     collection_filter: Option<&str>,
 ) -> String {
     let today = chrono::Local::now().date_naive();
-    let week_ago = today - chrono::Duration::days(7);
+    let week_ago = today
+        .checked_sub_days(chrono::Days::new(7))
+        .unwrap_or(chrono::NaiveDate::MIN);
 
     // Group documents by collection
     let mut coll_docs: HashMap<&str, Vec<&Document>> = HashMap::new();
@@ -283,21 +282,21 @@ pub fn format_digest(
         coll_sections.entry(&sec.collection).or_default().push(sec);
     }
 
-    let mut collection_names: Vec<&str> = coll_docs.keys().copied().collect();
-    collection_names.sort_unstable();
+    let mut collection_docs: Vec<(&str, Vec<&Document>)> = coll_docs.into_iter().collect();
+    collection_docs.sort_unstable_by_key(|(name, _)| *name);
 
-    let mut total_documents = 0;
-    let mut total_sections = 0;
+    let mut total_documents: usize = 0;
+    let mut total_sections: usize = 0;
     let mut collections = Vec::new();
 
-    for coll_name in collection_names {
-        let docs = &coll_docs[coll_name];
-        total_documents += docs.len();
+    for (coll_name, docs) in &collection_docs {
+        let coll_name = *coll_name;
+        total_documents = total_documents.saturating_add(docs.len());
 
         // Build section digests with topics (from doc titles)
         let empty_secs = vec![];
         let secs = coll_sections.get(coll_name).unwrap_or(&empty_secs);
-        total_sections += secs.len();
+        total_sections = total_sections.saturating_add(secs.len());
 
         let mut section_outputs = Vec::new();
         for sec in secs {
@@ -400,9 +399,8 @@ pub fn format_query(docs: &[&Document]) -> String {
 pub fn read_document_body(file_path: &std::path::Path) -> Option<String> {
     let content = std::fs::read_to_string(file_path).ok()?;
     if let Some(after) = content.strip_prefix("---")
-        && let Some(end) = after.find("\n---")
+        && let Some((_, body)) = after.split_once("\n---")
     {
-        let body = &after[end + 4..];
         return Some(body.trim_start_matches('\n').to_string());
     }
     Some(content)
@@ -422,18 +420,18 @@ pub fn format_export(
 
     let mut output = String::new();
 
-    let header = match collection_filter {
-        Some(c) => format!("# Vault Export: {c} ({today})\n\n"),
-        None => format!("# Vault Export ({today})\n\n"),
-    };
+    let header = collection_filter.map_or_else(
+        || format!("# Vault Export ({today})\n\n"),
+        |c| format!("# Vault Export: {c} ({today})\n\n"),
+    );
     output.push_str(&header);
 
     for (doc, body) in docs_with_bodies {
         output.push_str("---\n");
-        output.push_str(&format!("## {}\n", doc.path));
+        // Writing to a String cannot fail.
+        let _ = writeln!(output, "## {}", doc.path);
         for (key, value) in &doc.frontmatter {
-            let val_str = yaml_value_to_string(value);
-            output.push_str(&format!("{key}: {val_str}\n"));
+            let _ = writeln!(output, "{key}: {}", yaml_value_to_string(value));
         }
         output.push_str("---\n\n");
         output.push_str(body);
@@ -502,32 +500,27 @@ pub struct HealthBrokenLinkRef {
     pub raw: String,
 }
 
-/// Build a vault health report — document quality and hygiene checks.
-///
-/// Checks frontmatter that fails to parse, frontmatter completeness
-/// (created/updated/tags), content quality
-/// (staleness, stub detection), and link integrity (orphans, broken wiki-links).
-pub fn format_health(
-    documents: &[Document],
-    collection_filter: Option<&str>,
-    stale_days: u32,
-    min_words: u32,
-) -> String {
-    let today = chrono::Local::now().date_naive();
-    let stale_cutoff = today - chrono::Duration::days(i64::from(stale_days));
+/// Matches `[[target]]`, `[[target|alias]]` and `[[target#heading]]`.
+#[expect(
+    clippy::unwrap_used,
+    reason = "a constant pattern; the health tests compile it"
+)]
+static WIKI_LINK_RE: std::sync::LazyLock<regex::Regex> =
+    std::sync::LazyLock::new(|| regex::Regex::new(r"\[\[([^\]]+)\]\]").unwrap());
 
-    // Filter documents by collection
-    let docs: Vec<&Document> = documents
-        .iter()
-        .filter(|d| collection_filter.is_none_or(|f| d.collection == f))
-        .collect();
+/// Wiki-links across the checked documents, indexed by position in that list.
+struct LinkGraph {
+    /// Inbound links per document, self-links excluded.
+    inbound: Vec<usize>,
+    /// All wiki-links seen; orphans are only reported when there are any.
+    total: usize,
+    /// (target, raw link) of each unresolved link, keyed by source document.
+    broken_by_source: HashMap<usize, Vec<(String, String)>>,
+}
 
-    // --- Wiki-link graph ---
-    static WIKI_LINK_RE: std::sync::LazyLock<regex::Regex> =
-        std::sync::LazyLock::new(|| regex::Regex::new(r"\[\[([^\]]+)\]\]").unwrap());
-
-    // Build a set of all doc identifiers for resolution.
-    // Keys: lowercase title, lowercase path, lowercase path without .md extension.
+/// Resolve every wiki-link against document titles and paths (with and
+/// without `.md`), case-insensitively.
+fn link_graph(docs: &[&Document]) -> LinkGraph {
     let mut doc_id_to_idx: HashMap<String, usize> = HashMap::new();
     for (i, doc) in docs.iter().enumerate() {
         doc_id_to_idx.insert(doc.title.to_lowercase(), i);
@@ -536,14 +529,15 @@ pub fn format_health(
         doc_id_to_idx.insert(path_no_ext, i);
     }
 
-    // Track inbound links per doc index and broken links keyed by source doc
-    let mut inbound_count: Vec<usize> = vec![0; docs.len()];
-    let mut total_wiki_links = 0usize;
-    let mut broken_by_source: HashMap<usize, Vec<(String, String)>> = HashMap::new();
+    let mut graph = LinkGraph {
+        inbound: vec![0; docs.len()],
+        total: 0,
+        broken_by_source: HashMap::new(),
+    };
 
     for (src_idx, doc) in docs.iter().enumerate() {
         for cap in WIKI_LINK_RE.captures_iter(&doc.body) {
-            total_wiki_links += 1;
+            graph.total = graph.total.saturating_add(1);
             let raw = cap[0].to_string();
             let inner = &cap[1];
             // Strip alias after | and heading anchor after #
@@ -555,14 +549,16 @@ pub fn format_health(
                 .next()
                 .unwrap_or(inner)
                 .trim();
-            let target_lower = target.to_lowercase();
 
-            if let Some(&tgt_idx) = doc_id_to_idx.get(&target_lower) {
-                if tgt_idx != src_idx {
-                    inbound_count[tgt_idx] += 1;
+            if let Some(&tgt_idx) = doc_id_to_idx.get(&target.to_lowercase()) {
+                if tgt_idx != src_idx
+                    && let Some(count) = graph.inbound.get_mut(tgt_idx)
+                {
+                    *count = count.saturating_add(1);
                 }
             } else {
-                broken_by_source
+                graph
+                    .broken_by_source
                     .entry(src_idx)
                     .or_default()
                     .push((target.to_string(), raw));
@@ -570,131 +566,166 @@ pub fn format_health(
         }
     }
 
-    // --- Group by collection ---
-    let mut coll_docs: HashMap<&str, Vec<(usize, &&Document)>> = HashMap::new();
+    graph
+}
+
+/// Run every check on one collection's documents, given as (index in the
+/// link graph, document).
+fn check_collection(
+    name: &str,
+    entries: &[(usize, &Document)],
+    graph: &LinkGraph,
+    stale_cutoff: chrono::NaiveDate,
+    min_words: u32,
+) -> HealthCollectionOutput {
+    let min_words = usize::try_from(min_words).unwrap_or(usize::MAX);
+
+    let mut malformed_frontmatter = Vec::new();
+    let mut missing_created = Vec::new();
+    let mut missing_updated = Vec::new();
+    let mut no_tags = Vec::new();
+    let mut stale = Vec::new();
+    let mut stubs = Vec::new();
+    let mut orphans = Vec::new();
+    let mut broken_links = Vec::new();
+
+    for &(idx, doc) in entries {
+        let doc_ref = || HealthDocRef {
+            path: doc.path.clone(),
+            title: doc.title.clone(),
+        };
+
+        // A block that failed to parse has no fields: report it once,
+        // rather than as missing created, updated and tags.
+        if let Some(error) = &doc.frontmatter_error {
+            malformed_frontmatter.push(HealthMalformedRef {
+                path: doc.path.clone(),
+                title: doc.title.clone(),
+                error: error.clone(),
+            });
+        } else {
+            if !doc.frontmatter.contains_key("created") {
+                missing_created.push(doc_ref());
+            }
+            if !doc.frontmatter.contains_key("updated") {
+                missing_updated.push(doc_ref());
+            }
+            if doc.tags.is_empty() {
+                no_tags.push(doc_ref());
+            }
+        }
+
+        // Staleness: use updated, fall back to created
+        let last_date_str = doc
+            .frontmatter
+            .get("updated")
+            .or_else(|| doc.frontmatter.get("created"))
+            .map(yaml_value_to_string);
+
+        if let Some(ref date_str) = last_date_str
+            && let Ok(date) = chrono::NaiveDate::parse_from_str(date_str, "%Y-%m-%d")
+            && date < stale_cutoff
+        {
+            stale.push(HealthStaleRef {
+                path: doc.path.clone(),
+                title: doc.title.clone(),
+                last_date: date_str.clone(),
+            });
+        }
+
+        let word_count = doc.body.split_whitespace().count();
+        if word_count < min_words {
+            stubs.push(HealthStubRef {
+                path: doc.path.clone(),
+                title: doc.title.clone(),
+                word_count,
+            });
+        }
+
+        // Orphans (only if vault has wiki-links at all)
+        if graph.total > 0 && graph.inbound.get(idx) == Some(&0) {
+            orphans.push(doc_ref());
+        }
+
+        if let Some(links) = graph.broken_by_source.get(&idx) {
+            for (target, raw) in links {
+                broken_links.push(HealthBrokenLinkRef {
+                    source: doc.path.clone(),
+                    target: target.clone(),
+                    raw: raw.clone(),
+                });
+            }
+        }
+    }
+
+    let issues = [
+        malformed_frontmatter.len(),
+        missing_created.len(),
+        missing_updated.len(),
+        no_tags.len(),
+        stale.len(),
+        stubs.len(),
+        orphans.len(),
+        broken_links.len(),
+    ]
+    .into_iter()
+    .fold(0, usize::saturating_add);
+
+    HealthCollectionOutput {
+        name: name.to_string(),
+        doc_count: entries.len(),
+        issues,
+        malformed_frontmatter,
+        missing_created,
+        missing_updated,
+        no_tags,
+        stale,
+        stubs,
+        orphans,
+        broken_links,
+    }
+}
+
+/// Build a vault health report — document quality and hygiene checks.
+///
+/// Checks frontmatter that fails to parse, frontmatter completeness
+/// (created/updated/tags), content quality
+/// (staleness, stub detection), and link integrity (orphans, broken wiki-links).
+#[must_use]
+pub fn format_health(
+    documents: &[Document],
+    collection_filter: Option<&str>,
+    stale_days: u32,
+    min_words: u32,
+) -> String {
+    let today = chrono::Local::now().date_naive();
+    let stale_cutoff = today
+        .checked_sub_days(chrono::Days::new(u64::from(stale_days)))
+        .unwrap_or(chrono::NaiveDate::MIN);
+
+    let docs: Vec<&Document> = documents
+        .iter()
+        .filter(|d| collection_filter.is_none_or(|f| d.collection == f))
+        .collect();
+    let graph = link_graph(&docs);
+
+    // Group by collection, keeping each document's index in the link graph.
+    let mut coll_docs: BTreeMap<&str, Vec<(usize, &Document)>> = BTreeMap::new();
     for (i, doc) in docs.iter().enumerate() {
         coll_docs.entry(&doc.collection).or_default().push((i, doc));
     }
 
-    let mut coll_names: Vec<&str> = coll_docs.keys().copied().collect();
-    coll_names.sort_unstable();
-
-    let mut total_checked = 0;
-    let mut total_issues = 0;
-    let mut collections = Vec::new();
-
-    for coll_name in coll_names {
-        let coll_entries = &coll_docs[coll_name];
-        total_checked += coll_entries.len();
-
-        let mut malformed_frontmatter = Vec::new();
-        let mut missing_created = Vec::new();
-        let mut missing_updated = Vec::new();
-        let mut no_tags = Vec::new();
-        let mut stale = Vec::new();
-        let mut stubs = Vec::new();
-        let mut orphans = Vec::new();
-        let mut coll_broken = Vec::new();
-
-        for &(doc_global_idx, doc) in coll_entries {
-            let doc_ref = || HealthDocRef {
-                path: doc.path.clone(),
-                title: doc.title.clone(),
-            };
-
-            // A block that failed to parse has no fields: report it once,
-            // rather than as missing created, updated and tags.
-            if let Some(error) = &doc.frontmatter_error {
-                malformed_frontmatter.push(HealthMalformedRef {
-                    path: doc.path.clone(),
-                    title: doc.title.clone(),
-                    error: error.clone(),
-                });
-            } else {
-                if !doc.frontmatter.contains_key("created") {
-                    missing_created.push(doc_ref());
-                }
-                if !doc.frontmatter.contains_key("updated") {
-                    missing_updated.push(doc_ref());
-                }
-                if doc.tags.is_empty() {
-                    no_tags.push(doc_ref());
-                }
-            }
-
-            // Staleness: use updated, fall back to created
-            let last_date_str = doc
-                .frontmatter
-                .get("updated")
-                .or_else(|| doc.frontmatter.get("created"))
-                .map(yaml_value_to_string);
-
-            if let Some(ref date_str) = last_date_str
-                && let Ok(date) = chrono::NaiveDate::parse_from_str(date_str, "%Y-%m-%d")
-                && date < stale_cutoff
-            {
-                stale.push(HealthStaleRef {
-                    path: doc.path.clone(),
-                    title: doc.title.clone(),
-                    last_date: date_str.clone(),
-                });
-            }
-
-            // Stubs
-            let word_count = doc.body.split_whitespace().count();
-            if word_count < min_words as usize {
-                stubs.push(HealthStubRef {
-                    path: doc.path.clone(),
-                    title: doc.title.clone(),
-                    word_count,
-                });
-            }
-
-            // Orphans (only if vault has wiki-links at all)
-            if total_wiki_links > 0 && inbound_count[doc_global_idx] == 0 {
-                orphans.push(doc_ref());
-            }
-
-            // Broken links from this doc (O(1) lookup via pre-indexed map)
-            if let Some(entries) = broken_by_source.get(&doc_global_idx) {
-                for (target, raw) in entries {
-                    coll_broken.push(HealthBrokenLinkRef {
-                        source: doc.path.clone(),
-                        target: target.clone(),
-                        raw: raw.clone(),
-                    });
-                }
-            }
-        }
-
-        let issues = malformed_frontmatter.len()
-            + missing_created.len()
-            + missing_updated.len()
-            + no_tags.len()
-            + stale.len()
-            + stubs.len()
-            + orphans.len()
-            + coll_broken.len();
-        total_issues += issues;
-
-        collections.push(HealthCollectionOutput {
-            name: coll_name.to_string(),
-            doc_count: coll_entries.len(),
-            issues,
-            malformed_frontmatter,
-            missing_created,
-            missing_updated,
-            no_tags,
-            stale,
-            stubs,
-            orphans,
-            broken_links: coll_broken,
-        });
-    }
+    let collections: Vec<HealthCollectionOutput> = coll_docs
+        .iter()
+        .map(|(name, entries)| check_collection(name, entries, &graph, stale_cutoff, min_words))
+        .collect();
 
     let output = HealthOutput {
-        total_documents_checked: total_checked,
-        total_issues,
+        total_documents_checked: docs.len(),
+        total_issues: collections
+            .iter()
+            .map(|c| c.issues)
+            .fold(0, usize::saturating_add),
         collections,
     };
 
