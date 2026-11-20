@@ -292,10 +292,7 @@ pub fn format_digest(
 
         let mut section_outputs = Vec::new();
         for sec in secs {
-            let sec_docs: Vec<&&Document> = docs
-                .iter()
-                .filter(|d| d.section == sec.name)
-                .collect();
+            let sec_docs: Vec<&&Document> = docs.iter().filter(|d| d.section == sec.name).collect();
             let topics: Vec<String> = sec_docs.iter().map(|d| d.title.clone()).collect();
             let filtered_count = sec_docs.len();
             let hint = if filtered_count < 2 {
@@ -554,10 +551,7 @@ pub fn format_health(
     // --- Group by collection ---
     let mut coll_docs: HashMap<&str, Vec<(usize, &&Document)>> = HashMap::new();
     for (i, doc) in docs.iter().enumerate() {
-        coll_docs
-            .entry(&doc.collection)
-            .or_default()
-            .push((i, doc));
+        coll_docs.entry(&doc.collection).or_default().push((i, doc));
     }
 
     let mut coll_names: Vec<&str> = coll_docs.keys().copied().collect();

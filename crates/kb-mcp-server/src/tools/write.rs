@@ -56,7 +56,8 @@ impl KbMcpServer {
         let collection = match collection {
             Some(c) => c,
             None => {
-                let available: Vec<&str> = self.collections.iter().map(|c| c.name.as_str()).collect();
+                let available: Vec<&str> =
+                    self.collections.iter().map(|c| c.name.as_str()).collect();
                 return Ok(CallToolResult::error(vec![rmcp::model::Content::text(
                     format!(
                         "Collection '{}' not found. Available: {}",
@@ -80,16 +81,16 @@ impl KbMcpServer {
                 format!("Writable collections: {}", writable.join(", "))
             };
             return Ok(CallToolResult::error(vec![rmcp::model::Content::text(
-                format!(
-                    "Collection '{}' is read-only. {}",
-                    params.collection, hint
-                ),
+                format!("Collection '{}' is read-only. {}", params.collection, hint),
             )]));
         }
 
         let target_dir = if let Some(ref dir) = params.directory {
             let resolved = collection.path.join(dir);
-            let canonical_base = collection.path.canonicalize().unwrap_or(collection.path.clone());
+            let canonical_base = collection
+                .path
+                .canonicalize()
+                .unwrap_or(collection.path.clone());
             if let Err(e) = std::fs::create_dir_all(&resolved) {
                 return Ok(CallToolResult::error(vec![rmcp::model::Content::text(
                     format!("Failed to create directory '{}': {}", dir, e),
@@ -131,10 +132,7 @@ impl KbMcpServer {
         let mut frontmatter = String::new();
         frontmatter.push_str("---\n");
         if !params.tags.is_empty() {
-            frontmatter.push_str(&format!(
-                "tags: [{}]\n",
-                params.tags.join(", ")
-            ));
+            frontmatter.push_str(&format!("tags: [{}]\n", params.tags.join(", ")));
         }
         frontmatter.push_str(&format!("created: {}\n", today));
         frontmatter.push_str(&format!("updated: {}\n", today));
@@ -178,7 +176,12 @@ impl KbMcpServer {
             *index = new_index;
         }
 
-        let json = kb_core::format::format_write(&rel_path, &params.collection, &params.title, &params.tags);
+        let json = kb_core::format::format_write(
+            &rel_path,
+            &params.collection,
+            &params.title,
+            &params.tags,
+        );
         Ok(CallToolResult::success(vec![rmcp::model::Content::text(
             json,
         )]))

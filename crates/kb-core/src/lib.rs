@@ -48,9 +48,9 @@ pub async fn init(config_path: Option<&Path>) -> Result<AppContext> {
     let index = Index::build(&collections);
 
     #[cfg(feature = "hybrid")]
-    let embedder = std::sync::Arc::new(
-        memvid_core::LocalTextEmbedder::new(memvid_core::TextEmbedConfig::default())?,
-    );
+    let embedder = std::sync::Arc::new(memvid_core::LocalTextEmbedder::new(
+        memvid_core::TextEmbedConfig::default(),
+    )?);
 
     let stores = sync_stores(
         &cache_dir,

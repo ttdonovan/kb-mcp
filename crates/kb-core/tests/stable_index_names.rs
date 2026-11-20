@@ -28,11 +28,17 @@ fn start(dir: &Path, cache_dir: &Path, query: &str) -> (usize, bool) {
     let mut resolved = config.resolve(dir);
     let collection = resolved.collections.remove(0);
     let index = Index::build(std::slice::from_ref(&collection));
-    let hashes = index.content_hashes.get("wiki").cloned().unwrap_or_default();
+    let hashes = index
+        .content_hashes
+        .get("wiki")
+        .cloned()
+        .unwrap_or_default();
     let (mem, changes) =
         store::sync_collection(cache_dir, &collection, &hashes, &index.documents).unwrap();
     let engine = SearchEngine::new(HashMap::from([("wiki".to_string(), mem)]));
-    let found = !engine.search(&index.documents, query, None, None, 5).is_empty();
+    let found = !engine
+        .search(&index.documents, query, None, None, 5)
+        .is_empty();
     (changes, found)
 }
 

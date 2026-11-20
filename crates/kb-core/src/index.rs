@@ -115,7 +115,8 @@ fn scan_dir(
         if path.is_dir() {
             scan_dir(base, &path, collection_name, section_defs, docs, hashes);
         } else if path.extension().is_some_and(|e| e == "md")
-            && let Some((doc, hash)) = parse_document_with_hash(base, &path, collection_name, section_defs)
+            && let Some((doc, hash)) =
+                parse_document_with_hash(base, &path, collection_name, section_defs)
         {
             hashes.insert(doc.path.clone(), hash);
             docs.push(doc);

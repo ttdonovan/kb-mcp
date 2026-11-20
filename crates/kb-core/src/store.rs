@@ -384,7 +384,13 @@ mod tests {
         let v1 = mv2_path(cache, &collection("/plugins/1.0/wiki", IndexNames::Path));
         let v2 = mv2_path(cache, &collection("/plugins/1.1/wiki", IndexNames::Path));
         assert_ne!(v1, v2);
-        assert!(v1.file_name().unwrap().to_str().unwrap().ends_with("-wiki.mv2"));
+        assert!(
+            v1.file_name()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .ends_with("-wiki.mv2")
+        );
     }
 
     #[test]

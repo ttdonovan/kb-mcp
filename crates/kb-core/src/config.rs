@@ -118,8 +118,8 @@ pub fn load_config(explicit_path: Option<&Path>) -> Result<ResolvedConfig> {
     let (config_path, config_dir) = find_config(explicit_path)?;
     let content = std::fs::read_to_string(&config_path)
         .with_context(|| format!("failed to read config: {}", config_path.display()))?;
-    let mut config: Config =
-        ron::from_str(&content).with_context(|| format!("failed to parse: {}", config_path.display()))?;
+    let mut config: Config = ron::from_str(&content)
+        .with_context(|| format!("failed to parse: {}", config_path.display()))?;
     if let Ok(dir) = std::env::var("KB_MCP_CACHE_DIR")
         && !dir.is_empty()
     {
@@ -180,9 +180,10 @@ fn default_cache_dir() -> PathBuf {
 /// a full shellexpand crate for this single use case.
 fn shellexpand(s: &str) -> String {
     if s.starts_with("~/")
-        && let Some(home) = dirs::home_dir() {
-            return format!("{}{}", home.display(), &s[1..]);
-        }
+        && let Some(home) = dirs::home_dir()
+    {
+        return format!("{}{}", home.display(), &s[1..]);
+    }
     s.to_string()
 }
 

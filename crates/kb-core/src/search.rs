@@ -132,7 +132,9 @@ impl SearchEngine {
 
             #[cfg(feature = "hybrid")]
             {
-                let adapter = EmbedderAdapter { inner: &self.embedder };
+                let adapter = EmbedderAdapter {
+                    inner: &self.embedder,
+                };
                 let request = memvid_core::AskRequest {
                     question: query_str.to_string(),
                     top_k,
