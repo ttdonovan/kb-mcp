@@ -7,7 +7,7 @@ description: Read before installing kb-mcp's Claude Code plugins or changing the
 This repository is a Claude Code plugin marketplace with two plugins, both under `plugins/`:
 
 - `kb-mcp`, for anyone using kb-mcp: a skill for using its tools and setting it up for a project.
-- `kb-mcp-dev`, for people changing this repository: skills for its kinds of change and two read-only reviewers. Kept apart so that a user never loads them.
+- `kb-mcp-dev`, for people changing this repository: skills for its kinds of change, two read-only reviewers, and an MCP server built from the checkout. Kept apart so that a user never loads them.
 
 Files: `.claude-plugin/marketplace.json` (the marketplace), `plugins/kb-mcp/` and `plugins/kb-mcp-dev/` (the plugins, each with `.claude-plugin/plugin.json`).
 
@@ -37,6 +37,17 @@ A plugin cannot reach files outside its own folder, so the skill links to this b
 | `kb-mcp-dev:obsidian-markdown`, `obsidian-bases`, `obsidian-cli` | work on the Obsidian vault in `vault/`; copied from upstream, see `skills/UPSTREAM.md` |
 
 What the reviewers check, and their report, are in [Reviewing a Change](reviewing.md).
+
+### The kb-dev MCP server
+
+The plugin also adds an MCP server, `kb-dev`, that runs kb-mcp built from the checkout, so a session can try a change through a real MCP client. Its wrapper, `plugins/kb-mcp-dev/scripts/kb-mcp-debug.sh`:
+
+- finds the checkout from the plugin's own folder when loaded in place (`just claude`), otherwise from the session's project directory, and fails with a message outside a kb-mcp checkout;
+- runs `cargo build --locked -p kb-mcp-server`, which takes a few seconds when nothing changed and longer on a first build, then starts `target/debug/kb-mcp`;
+- serves `collections.ron` at the root if you have one (it is gitignored), otherwise `collections.example.ron`, which indexes this repository; `KB_MCP_CONFIG` overrides it;
+- keeps the index in `target/kb-mcp-dev/index/`, apart from an installed kb-mcp's; `KB_MCP_CACHE_DIR` overrides it.
+
+After changing the code, reconnect `kb-dev` in `/mcp`: the wrapper rebuilds and restarts it. If a first build takes longer than the session waits for the server, reconnect once it finishes. In `/mcp` it is listed as `plugin:kb-mcp-dev:kb-dev`.
 
 - `just claude` starts a session with it loaded from the checkout, so an edit applies on the next session or after `/reload-plugins` (arguments go to `claude`, such as `just claude --resume`).
 - To have it in every session here instead: `claude plugin marketplace add ./` from the root, then `claude plugin install kb-mcp-dev@kb-mcp --scope local`. `--scope project` would write it into the shared `.claude/settings.json`.

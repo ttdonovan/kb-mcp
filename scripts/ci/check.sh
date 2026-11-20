@@ -7,6 +7,6 @@ cargo fmt --all --check
 cargo clippy --workspace --all-targets --locked -- -D warnings
 cargo clippy --workspace --locked --features kb-cli/hybrid,kb-mcp-server/hybrid -- -D warnings
 cargo test --workspace --locked
-shellcheck scripts/ci/*.sh
+shellcheck scripts/ci/*.sh plugins/*/scripts/*.sh
 cargo audit
 scripts/ci/crate-age.sh

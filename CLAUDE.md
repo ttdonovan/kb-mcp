@@ -151,7 +151,7 @@ After making changes, verify with:
 
 ## Development Tooling
 
-The `kb-mcp-dev` Claude Code plugin (`plugins/kb-mcp-dev/`, loaded by `just claude`) has skills for adding a tool, working in a stack and releasing, and read-only reviewers (`/kb-mcp-dev:review-code`, `/kb-mcp-dev:review-docs`). See [docs/src/development/plugins.md](docs/src/development/plugins.md).
+The `kb-mcp-dev` Claude Code plugin (`plugins/kb-mcp-dev/`, loaded by `just claude`) has a `kb-dev` MCP server built from the checkout (reconnect it in `/mcp` to rebuild), skills for adding a tool, working in a stack and releasing, and read-only reviewers (`/kb-mcp-dev:review-code`, `/kb-mcp-dev:review-docs`). See [docs/src/development/plugins.md](docs/src/development/plugins.md).
 
 See [docs/src/development/methodology.md](docs/src/development/methodology.md) for the full development methodology,
 including the Compound Engineering workflow (`/ce:brainstorm` → `/ce:plan`

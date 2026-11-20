@@ -13,7 +13,7 @@
     {
       "name": "kb-mcp-dev",
       "source": "./plugins/kb-mcp-dev",
-      "description": "For changing kb-mcp itself: adding a tool, reviewing changes to the code and the docs, working in a stack of pull requests, and making a release"
+      "description": "For changing kb-mcp itself: a kb-dev MCP server built from the checkout, adding a tool, reviewing changes to the code and the docs, working in a stack of pull requests, and making a release"
     }
   ]
 }
