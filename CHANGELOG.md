@@ -8,6 +8,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [0.3.1](https://github.com/ttdonovan/kb-mcp/compare/v0.3.0...v0.3.1) - 2026-11-20
 
+### Added
+
+- Claude Code plugins, from the marketplace in this repository (`claude plugin marketplace add ttdonovan/kb-mcp`): `kb-mcp`, a skill for using kb-mcp's tools and setting it up for a project, and `kb-mcp-dev`, for changing kb-mcp, with a `kb-dev` MCP server built from the checkout, code and docs reviewers, and skills for adding a tool, testing through `kb-dev`, working in a stack and releasing.
+- the docs are now two books: the [technical book](https://ttdonovan.github.io/kb-mcp/) (install, configure, use, every tool and config field, development) and the [product book](https://ttdonovan.github.io/kb-mcp/product/) (goals, roadmap, landscape). Both publish `llms.txt`, `llms-full.txt` and each chapter as Markdown for agents.
+
+### Changed
+
+- `kb_write` and `kb write` keep a `filename` that already ends in `.md` in any case, such as `Note.MD`, instead of appending `.md`.
+
 ### Fixed
 
 - report frontmatter that is not valid YAML in kb_health, and log it, instead of silently dropping its fields.
