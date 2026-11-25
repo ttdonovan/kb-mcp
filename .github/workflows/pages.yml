@@ -26,8 +26,9 @@ concurrency:
 env:
   MDBOOK_VERSION: v0.5.4
   MDBOOK_MERMAID_VERSION: v0.17.1
-  # mdbook-llms v0.4.0, pinned by commit
-  MDBOOK_LLMS_REV: 237bbd58b8b8f69e27e8c1c9338307e27f648116
+  MDBOOK_LLMS_VERSION: v0.4.1
+  # SHA-256 of the x86_64-unknown-linux-gnu release tarball
+  MDBOOK_LLMS_SHA256: 1e666a6996b1aacb61414b7ac852521b454f8a73bf9a0c41f0b5fda01a03188b
 
 jobs:
   build:
@@ -39,18 +40,17 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Install the toolchain from rust-toolchain.toml
-        run: rustup toolchain install
-
-      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
-
       - name: Install mdBook, mdbook-mermaid and mdbook-llms
         run: |
           mkdir -p "$HOME/.local/bin"
           curl -fsSL "https://github.com/rust-lang/mdBook/releases/download/$MDBOOK_VERSION/mdbook-$MDBOOK_VERSION-x86_64-unknown-linux-gnu.tar.gz" | tar -xz -C "$HOME/.local/bin"
           curl -fsSL "https://github.com/badboy/mdbook-mermaid/releases/download/$MDBOOK_MERMAID_VERSION/mdbook-mermaid-$MDBOOK_MERMAID_VERSION-x86_64-unknown-linux-gnu.tar.gz" | tar -xz -C "$HOME/.local/bin"
+          llms="mdbook-llms-$MDBOOK_LLMS_VERSION-x86_64-unknown-linux-gnu.tar.gz"
+          curl -fsSLO "https://github.com/ttdonovan/mdbook-llms/releases/download/$MDBOOK_LLMS_VERSION/$llms"
+          echo "$MDBOOK_LLMS_SHA256  $llms" | sha256sum -c -
+          tar -xzf "$llms" -C "$HOME/.local/bin" --strip-components=1 --wildcards '*/mdbook-llms' '*/mdbook-strip-frontmatter'
+          rm "$llms"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-          cargo install --locked --git https://github.com/ttdonovan/mdbook-llms --rev "$MDBOOK_LLMS_REV"
 
       - name: Check
         run: |
