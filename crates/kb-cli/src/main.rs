@@ -36,6 +36,9 @@ enum Command {
         /// Document path or title
         #[arg(long)]
         path: String,
+        /// Collection to look in; needed when the path or title is in more than one
+        #[arg(long)]
+        collection: Option<String>,
     },
     /// Search across collections
     Search {
@@ -57,6 +60,9 @@ enum Command {
         /// Document path or title
         #[arg(long)]
         path: String,
+        /// Collection to look in; needed when the path or title is in more than one
+        #[arg(long)]
+        collection: Option<String>,
     },
     /// Create a document in a writable collection
     Write {
@@ -158,8 +164,8 @@ fn run(command: Command, ctx: &AppContext) -> Result<(), String> {
     let index = &ctx.index;
     match command {
         Command::ListSections => println!("{}", format::format_sections(&index.sections)),
-        Command::GetDocument { path } => {
-            let doc = find(index, &path)?;
+        Command::GetDocument { path, collection } => {
+            let doc = index.lookup(&path, collection.as_deref())?;
             println!("{}", format::format_document(doc, true));
         }
         Command::Search {
@@ -180,7 +186,10 @@ fn run(command: Command, ctx: &AppContext) -> Result<(), String> {
                 format::format_search(&query, &results, &index.documents)
             );
         }
-        Command::Context { path } => println!("{}", format::format_context(find(index, &path)?)),
+        Command::Context { path, collection } => println!(
+            "{}",
+            format::format_context(index.lookup(&path, collection.as_deref())?)
+        ),
         Command::Write {
             collection,
             title,
@@ -290,14 +299,6 @@ fn health(
         format::format_health(&ctx.index.documents, collection, stale_days, min_words)
     );
     Ok(())
-}
-
-/// A document by path, else by title.
-fn find<'a>(index: &'a Index, path: &str) -> Result<&'a Document, String> {
-    index
-        .find_by_path(path)
-        .or_else(|| index.find_by_title(path))
-        .ok_or_else(|| format!("Document not found: {path}"))
 }
 
 /// The `write` command's arguments, with tags already split.

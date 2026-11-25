@@ -37,6 +37,7 @@ Retrieve a document by path or title. Content is read fresh from disk.
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `path` | String | Yes | Document path or title |
+| `collection` | String | No | Collection to look in. A path or title that matches more than one document is an error listing the matches: pass `collection` when they are in different collections, or the path when one collection repeats a title |
 
 **Returns:** JSON with `path`, `title`, `tags`, `section`, `collection`, and `content`.
 
@@ -53,6 +54,7 @@ Saves 90%+ tokens on retrieval-heavy workflows.
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `path` | String | Yes | Document path or title |
+| `collection` | String | No | Collection to look in. A path or title that matches more than one document is an error listing the matches: pass `collection` when they are in different collections, or the path when one collection repeats a title |
 
 **Returns:** JSON with `path`, `title`, `tags`, `section`, `collection`,
 `frontmatter` (all fields), and `summary` (first paragraph).

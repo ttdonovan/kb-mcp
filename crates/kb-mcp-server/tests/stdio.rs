@@ -144,8 +144,8 @@ fn stdio_round_trip() {
         .collect();
     tools.sort();
     let expected: Vec<(String, Vec<String>)> = [
-        ("get_document", vec!["path"]),
-        ("kb_context", vec!["path"]),
+        ("get_document", vec!["collection", "path"]),
+        ("kb_context", vec!["collection", "path"]),
         ("kb_digest", vec!["collection"]),
         ("kb_export", vec!["collection", "max_documents"]),
         ("kb_health", vec!["collection", "min_words", "stale_days"]),

@@ -25,6 +25,9 @@ kb get-document --path "concepts/mcp-server-pattern.md"
 # Token-efficient briefing
 kb context --path "concepts/mcp-server-pattern.md"
 
+# A path or title in more than one collection needs --collection (a title repeated in one collection needs the path)
+kb get-document --path "fleets/mining.md" --collection guide
+
 # Write a note (writable collection only)
 kb write --collection notes --title "My Note" --body "Content" --tags "tag1,tag2"
 

@@ -13,8 +13,8 @@ Read cheaply first, in full only what matters:
 
 1. `kb_digest` or `list_sections` to see what the knowledge base covers, once per task.
 2. `search` with a few keywords. Narrow with `collection` or `scope` (a section prefix). It is BM25: use the words a note would contain, and try synonyms if the first query misses.
-3. `kb_context` on the promising results: frontmatter and the first paragraph, a fraction of the tokens.
-4. `get_document` only for the notes you need whole. It reads from disk, so it is always current.
+3. `kb_context` on the promising results, passing each result's `path` and `collection`: frontmatter and the first paragraph, a fraction of the tokens.
+4. `get_document` (with `path` and `collection`) only for the notes you need whole. It reads from disk, so it is always current.
 
 - `kb_query` filters by frontmatter (tag, status, created date, has sources) without a query.
 - `kb_health` lists quality problems: frontmatter that is not valid YAML (its fields are then ignored), missing dates or tags, stale notes, stubs, orphans, broken wiki-links.

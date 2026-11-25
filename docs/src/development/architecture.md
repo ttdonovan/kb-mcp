@@ -249,7 +249,7 @@ graph LR
 
 `get_document` does **not** return content from the search index. It:
 
-1. Looks up the document by path or title in the index
+1. Looks up the document by path or title in the index, within `collection` if given; a path or title matching more than one document is an error listing them
 2. Finds the owning collection's resolved path
 3. Reads the file fresh from disk
 4. Strips frontmatter and returns the body
