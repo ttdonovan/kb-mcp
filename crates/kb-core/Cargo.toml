@@ -17,6 +17,7 @@ anyhow = "1"
 blake3 = "1"
 chrono = "0.4"
 dirs = "6"
+globset = "0.4"
 memvid-core = { version = "2.0", default-features = false, features = ["lex"] }
 regex = "1"
 ron = "0.12"

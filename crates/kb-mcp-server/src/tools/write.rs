@@ -127,6 +127,11 @@ impl KbMcpServer {
         };
 
         let file_path = kb_core::write::find_available_path(&target_dir, &base_name);
+        if let Err(message) = kb_core::write::check_not_excluded(collection, &file_path) {
+            return Ok(CallToolResult::error(vec![
+                rmcp::model::ContentBlock::text(message),
+            ]));
+        }
         let rel_path = file_path
             .strip_prefix(&collection.path)
             .unwrap_or(&file_path)

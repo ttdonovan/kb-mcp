@@ -32,6 +32,7 @@ fn fixture(test_name: &str) -> (PathBuf, Vec<ResolvedCollection>) {
             writable: false,
             sections: vec![],
             index_names: IndexNames::Path,
+            exclude: kb_core::config::Exclude::default(),
         }
     };
 

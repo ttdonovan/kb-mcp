@@ -101,6 +101,7 @@ erDiagram
         string path
         string description
         bool writable
+        list exclude
     }
     SectionDef {
         string prefix
@@ -124,6 +125,7 @@ collections.ron
         ├── path: String          directory (relative to config)
         ├── description: String   shown in list_sections
         ├── writable: bool        enables kb_write
+        ├── exclude: String[]     globs not to index, relative to path
         └── sections: SectionDef[]
               ├── prefix: String      matches first subdirectory
               └── description: String shown in list_sections

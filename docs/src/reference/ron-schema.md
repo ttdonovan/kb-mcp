@@ -41,6 +41,13 @@ The full `collections.ron` schema with all fields:
                 (prefix: "concepts", description: "Cross-cutting concepts"),
                 (prefix: "guides", description: "How-to guides"),
             ],
+
+            // Files and directories not to index, as globs relative to the collection root
+            // * and ? stop at /; ** crosses directories; a matched directory is skipped whole
+            // Case-sensitive; a trailing / is ignored; kb_write refuses an excluded file
+            // An invalid pattern fails startup
+            // Default: []
+            exclude: ["SUMMARY.md", "**/drafts"],
         ),
     ],
 )
@@ -68,6 +75,7 @@ struct Collection {
     description: String,
     writable: bool,       // default: false
     sections: Vec<Section>, // default: []
+    exclude: Vec<String>,   // default: []
 }
 
 struct Section {

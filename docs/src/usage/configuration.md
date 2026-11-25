@@ -52,6 +52,7 @@ directories to index.
 | `description` | String | Yes | Human-readable description |
 | `writable` | Bool | No | Allow `kb_write` to create files (default: `false`) |
 | `sections` | List | No | Section definitions for this collection |
+| `exclude` | List | No | Glob patterns, relative to the collection root, for files and directories not to index, such as an mdBook's `"SUMMARY.md"`. `*` and `?` stop at `/` and `**` crosses directories, so `"**/SUMMARY.md"` matches at any depth; a matched directory is skipped whole. Unlike `.gitignore`, a pattern without `/` matches only at the root, and matching is case-sensitive; a trailing `/` is ignored. `kb_write` refuses a file the patterns would exclude. An invalid pattern fails startup (default: `[]`) |
 
 ### Section Fields
 

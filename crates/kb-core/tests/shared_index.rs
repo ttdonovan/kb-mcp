@@ -44,6 +44,7 @@ fn fixture(test_name: &str, with_doc: bool) -> (PathBuf, PathBuf, ResolvedCollec
         writable: false,
         sections: vec![],
         index_names: IndexNames::Path,
+        exclude: kb_core::config::Exclude::default(),
     };
     (root.clone(), root.join("cache"), collection)
 }

@@ -30,6 +30,7 @@ fn health_reports_malformed_frontmatter_instead_of_missing_fields() {
         writable: false,
         sections: vec![],
         index_names: IndexNames::Path,
+        exclude: kb_core::config::Exclude::default(),
     };
     let index = Index::build(&[collection]);
 

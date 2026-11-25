@@ -27,7 +27,7 @@ Tool parameters: https://ttdonovan.github.io/kb-mcp/reference/tools.html
 ## Setting it up for a project
 
 1. Install `kb` and `kb-mcp`. Prebuilt binaries (Linux x86_64/arm64, macOS arm64/x86_64) with `SHA256SUMS` and build provenance are on each release: https://github.com/ttdonovan/kb-mcp/releases. Verify a download with `gh attestation verify <file> --repo ttdonovan/kb-mcp`. Or build from a tag: `cargo install --locked --git https://github.com/ttdonovan/kb-mcp --tag vX.Y.Z kb-cli kb-mcp-server`.
-2. Write `collections.ron` at the project root. Each collection has a `name`, a `path` (relative to the config file), a `description`, `writable` and optional `sections` (a directory prefix with a description). Start from the example: https://github.com/ttdonovan/kb-mcp/blob/main/collections.example.ron. Every field: https://ttdonovan.github.io/kb-mcp/reference/ron-schema.html
+2. Write `collections.ron` at the project root. Each collection has a `name`, a `path` (relative to the config file), a `description`, `writable`, optional `sections` (a directory prefix with a description) and optional `exclude` (globs not to index, such as an mdBook's `SUMMARY.md`). Start from the example: https://github.com/ttdonovan/kb-mcp/blob/main/collections.example.ron. Every field: https://ttdonovan.github.io/kb-mcp/reference/ron-schema.html
 3. Register the server in the project's `.mcp.json`:
 
    ```json

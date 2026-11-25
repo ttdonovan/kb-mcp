@@ -8,7 +8,7 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
-use crate::config::{ResolvedCollection, SectionDef};
+use crate::config::{Exclude, ResolvedCollection, SectionDef};
 use crate::store;
 use crate::types::{Document, Section};
 
@@ -36,6 +36,7 @@ impl Index {
                     &collection.path,
                     &collection.name,
                     &collection.sections,
+                    &collection.exclude,
                     &mut documents,
                     &mut coll_hashes,
                 );
@@ -73,6 +74,7 @@ impl Index {
                 &collection.path,
                 &collection.name,
                 &collection.sections,
+                &collection.exclude,
                 &mut self.documents,
                 &mut coll_hashes,
             );
@@ -172,6 +174,7 @@ fn scan_dir(
     dir: &Path,
     collection_name: &str,
     section_defs: &[SectionDef],
+    exclude: &Exclude,
     docs: &mut Vec<Document>,
     hashes: &mut store::HashIndex,
 ) {
@@ -181,8 +184,23 @@ fn scan_dir(
 
     for entry in entries.flatten() {
         let path = entry.path();
+        // An excluded directory is not descended into.
+        if path
+            .strip_prefix(base)
+            .is_ok_and(|rel| exclude.is_match(rel))
+        {
+            continue;
+        }
         if path.is_dir() {
-            scan_dir(base, &path, collection_name, section_defs, docs, hashes);
+            scan_dir(
+                base,
+                &path,
+                collection_name,
+                section_defs,
+                exclude,
+                docs,
+                hashes,
+            );
         } else if path.extension().is_some_and(|e| e == "md")
             && let Some((doc, hash)) =
                 parse_document_with_hash(base, &path, collection_name, section_defs)

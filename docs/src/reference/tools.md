@@ -80,8 +80,9 @@ and `filename` to specify an exact name without date prefix.
 
 **Returns:** JSON with `path`, `collection`, `title`, and `tags`.
 
-**Errors:** Returns actionable error if collection is read-only, not found, or
-directory escapes the collection root.
+**Errors:** Returns actionable error if collection is read-only, not found,
+directory escapes the collection root, or the file would match the collection's
+`exclude` patterns (it would never be indexed).
 
 ## kb_digest
 

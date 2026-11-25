@@ -359,6 +359,7 @@ fn write(collections: &[ResolvedCollection], args: &WriteArgs) -> Result<(), Str
         },
     );
     let file_path = kb_core::write::find_available_path(&target_dir, &base_name);
+    kb_core::write::check_not_excluded(collection, &file_path)?;
 
     // Writing to a String cannot fail.
     let mut frontmatter = String::from("---\n");
