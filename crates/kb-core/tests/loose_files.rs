@@ -46,6 +46,7 @@ fn fixture_collection(test_name: &str) -> (PathBuf, ResolvedCollection) {
             description: "Go docs".to_string(),
         }],
         index_names: IndexNames::Path,
+        exclude: kb_core::config::Exclude::default(),
     };
 
     (root, collection)

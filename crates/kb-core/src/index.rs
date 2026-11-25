@@ -8,7 +8,7 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
-use crate::config::{ResolvedCollection, SectionDef};
+use crate::config::{Exclude, ResolvedCollection, SectionDef};
 use crate::store;
 use crate::types::{Document, Section};
 
@@ -36,6 +36,7 @@ impl Index {
                     &collection.path,
                     &collection.name,
                     &collection.sections,
+                    &collection.exclude,
                     &mut documents,
                     &mut coll_hashes,
                 );
@@ -73,6 +74,7 @@ impl Index {
                 &collection.path,
                 &collection.name,
                 &collection.sections,
+                &collection.exclude,
                 &mut self.documents,
                 &mut coll_hashes,
             );
@@ -86,17 +88,84 @@ impl Index {
         self.sections = build_sections(&self.documents, all_collections);
     }
 
+    /// The first document with this path in any collection; use [`Self::lookup`]
+    /// when collections may share paths.
     #[must_use]
     pub fn find_by_path(&self, path: &str) -> Option<&Document> {
         self.documents.iter().find(|d| d.path == path)
     }
 
+    /// The first document with this title in any collection; use [`Self::lookup`]
+    /// when titles may repeat.
     #[must_use]
     pub fn find_by_title(&self, title: &str) -> Option<&Document> {
         let lower = title.to_lowercase();
         self.documents
             .iter()
             .find(|d| d.title.to_lowercase() == lower)
+    }
+
+    /// A document by path, else by title, optionally within one collection.
+    ///
+    /// Collections can share paths and titles, and one collection can repeat a
+    /// title, so several matches are an error listing them, never the first.
+    ///
+    /// # Errors
+    ///
+    /// The message to show: no document matches, or several do.
+    pub fn lookup(
+        &self,
+        path_or_title: &str,
+        collection: Option<&str>,
+    ) -> Result<&Document, String> {
+        let in_scope = |d: &&Document| collection.is_none_or(|c| d.collection == c);
+        let lower = path_or_title.to_lowercase();
+        let mut matches: Vec<&Document> = self
+            .documents
+            .iter()
+            .filter(in_scope)
+            .filter(|d| d.path == path_or_title)
+            .collect();
+        let by_path = !matches.is_empty();
+        if !by_path {
+            matches = self
+                .documents
+                .iter()
+                .filter(in_scope)
+                .filter(|d| d.title.to_lowercase() == lower)
+                .collect();
+        }
+
+        match matches.as_slice() {
+            [doc] => Ok(doc),
+            [] => Err(match collection {
+                // Every configured collection with a directory has a hash entry, even if empty.
+                Some(c) if !self.content_hashes.contains_key(c) => {
+                    format!("Collection '{c}' not found")
+                }
+                Some(c) => format!("Document not found: {path_or_title} in collection '{c}'"),
+                None => format!("Document not found: {path_or_title}"),
+            }),
+            docs => {
+                let listed: Vec<String> = docs
+                    .iter()
+                    .map(|d| format!("{} ({})", d.collection, d.path))
+                    .collect();
+                // A path is unique within a collection, so it always resolves.
+                let first = docs.first().map(|d| d.collection.as_str());
+                let hint = if by_path {
+                    "Pass a collection to choose one."
+                } else if docs.iter().all(|d| Some(d.collection.as_str()) == first) {
+                    "Pass the path to choose one."
+                } else {
+                    "Pass a collection or the path to choose one."
+                };
+                Err(format!(
+                    "'{path_or_title}' matches more than one document: {}. {hint}",
+                    listed.join(", ")
+                ))
+            }
+        }
     }
 }
 
@@ -105,6 +174,7 @@ fn scan_dir(
     dir: &Path,
     collection_name: &str,
     section_defs: &[SectionDef],
+    exclude: &Exclude,
     docs: &mut Vec<Document>,
     hashes: &mut store::HashIndex,
 ) {
@@ -114,8 +184,23 @@ fn scan_dir(
 
     for entry in entries.flatten() {
         let path = entry.path();
+        // An excluded directory is not descended into.
+        if path
+            .strip_prefix(base)
+            .is_ok_and(|rel| exclude.is_match(rel))
+        {
+            continue;
+        }
         if path.is_dir() {
-            scan_dir(base, &path, collection_name, section_defs, docs, hashes);
+            scan_dir(
+                base,
+                &path,
+                collection_name,
+                section_defs,
+                exclude,
+                docs,
+                hashes,
+            );
         } else if path.extension().is_some_and(|e| e == "md")
             && let Some((doc, hash)) =
                 parse_document_with_hash(base, &path, collection_name, section_defs)

@@ -5,7 +5,7 @@
 //! stdout, errors to stderr.
 
 use std::fmt::Write as _;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
@@ -36,6 +36,9 @@ enum Command {
         /// Document path or title
         #[arg(long)]
         path: String,
+        /// Collection to look in; needed when the path or title is in more than one
+        #[arg(long)]
+        collection: Option<String>,
     },
     /// Search across collections
     Search {
@@ -57,6 +60,9 @@ enum Command {
         /// Document path or title
         #[arg(long)]
         path: String,
+        /// Collection to look in; needed when the path or title is in more than one
+        #[arg(long)]
+        collection: Option<String>,
     },
     /// Create a document in a writable collection
     Write {
@@ -78,10 +84,10 @@ enum Command {
         /// Optional source field
         #[arg(long)]
         source: Option<String>,
-        /// Subdirectory within the collection (e.g. "concepts/memory")
+        /// Subdirectory within the collection (e.g. "concepts/memory"), relative and without ".."
         #[arg(long)]
         directory: Option<String>,
-        /// Explicit filename (e.g. "cognitive-memory-model.md"). Skips date prefix.
+        /// Explicit filename (e.g. "cognitive-memory-model.md"), a plain file name. Skips date prefix.
         #[arg(long)]
         filename: Option<String>,
     },
@@ -158,8 +164,8 @@ fn run(command: Command, ctx: &AppContext) -> Result<(), String> {
     let index = &ctx.index;
     match command {
         Command::ListSections => println!("{}", format::format_sections(&index.sections)),
-        Command::GetDocument { path } => {
-            let doc = find(index, &path)?;
+        Command::GetDocument { path, collection } => {
+            let doc = index.lookup(&path, collection.as_deref())?;
             println!("{}", format::format_document(doc, true));
         }
         Command::Search {
@@ -180,7 +186,10 @@ fn run(command: Command, ctx: &AppContext) -> Result<(), String> {
                 format::format_search(&query, &results, &index.documents)
             );
         }
-        Command::Context { path } => println!("{}", format::format_context(find(index, &path)?)),
+        Command::Context { path, collection } => println!(
+            "{}",
+            format::format_context(index.lookup(&path, collection.as_deref())?)
+        ),
         Command::Write {
             collection,
             title,
@@ -292,14 +301,6 @@ fn health(
     Ok(())
 }
 
-/// A document by path, else by title.
-fn find<'a>(index: &'a Index, path: &str) -> Result<&'a Document, String> {
-    index
-        .find_by_path(path)
-        .or_else(|| index.find_by_title(path))
-        .ok_or_else(|| format!("Document not found: {path}"))
-}
-
 /// The `write` command's arguments, with tags already split.
 struct WriteArgs {
     coll_name: String,
@@ -323,41 +324,11 @@ fn write(collections: &[ResolvedCollection], args: &WriteArgs) -> Result<(), Str
         return Err(format!("Collection '{coll_name}' is read-only"));
     }
 
-    let target_dir = if let Some(ref dir) = args.directory {
-        let resolved = collection.path.join(dir);
-        let canonical_base = collection
-            .path
-            .canonicalize()
-            .unwrap_or_else(|_| collection.path.clone());
-        std::fs::create_dir_all(&resolved)
-            .map_err(|e| format!("Failed to create directory '{dir}': {e}"))?;
-        let canonical_resolved = resolved.canonicalize().unwrap_or(resolved);
-        if !canonical_resolved.starts_with(&canonical_base) {
-            return Err(format!("Directory '{dir}' escapes the collection root"));
-        }
-        canonical_resolved
-    } else {
-        collection.path.clone()
-    };
-
+    let target_dir = kb_core::write::target_dir(collection, args.directory.as_deref())?;
     let today = chrono::Local::now().format("%Y-%m-%d").to_string();
-    let base_name = args.filename.as_ref().map_or_else(
-        || {
-            let slug = kb_core::write::slugify_title(&args.title);
-            format!("{today}-{slug}.md")
-        },
-        |name| {
-            if Path::new(name)
-                .extension()
-                .is_some_and(|ext| ext.eq_ignore_ascii_case("md"))
-            {
-                name.clone()
-            } else {
-                format!("{name}.md")
-            }
-        },
-    );
-    let file_path = kb_core::write::find_available_path(&target_dir, &base_name);
+    let base_name = kb_core::write::file_name(args.filename.as_deref(), &args.title, &today)?;
+    let file_path = kb_core::write::find_available_path(&target_dir, &base_name)?;
+    kb_core::write::check_not_excluded(collection, &file_path)?;
 
     // Writing to a String cannot fail.
     let mut frontmatter = String::from("---\n");
@@ -375,7 +346,7 @@ fn write(collections: &[ResolvedCollection], args: &WriteArgs) -> Result<(), Str
     frontmatter.push_str("---\n\n");
 
     let content = format!("{frontmatter}# {}\n\n{}\n", args.title, args.body);
-    std::fs::write(&file_path, &content).map_err(|e| format!("Failed to write: {e}"))?;
+    kb_core::write::write_new(&file_path, &content)?;
 
     let rel = file_path
         .strip_prefix(&collection.path)

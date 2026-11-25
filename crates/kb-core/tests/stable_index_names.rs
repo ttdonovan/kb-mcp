@@ -29,7 +29,7 @@ fn install(dir: &Path, body: &str) {
 /// Resolve the config at `dir`, sync its one collection, and search it.
 fn start(dir: &Path, cache_dir: &Path, query: &str) -> (usize, bool) {
     let config: Config = ron::from_str(RON).unwrap();
-    let mut resolved = config.resolve(dir);
+    let mut resolved = config.resolve(dir).unwrap();
     let collection = resolved.collections.remove(0);
     let index = Index::build(std::slice::from_ref(&collection));
     let hashes = index

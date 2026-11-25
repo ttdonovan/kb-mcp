@@ -402,6 +402,7 @@ mod tests {
             writable: false,
             sections: vec![],
             index_names,
+            exclude: crate::config::Exclude::default(),
         }
     }
 

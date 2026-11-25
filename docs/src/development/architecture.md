@@ -101,6 +101,7 @@ erDiagram
         string path
         string description
         bool writable
+        list exclude
     }
     SectionDef {
         string prefix
@@ -124,6 +125,7 @@ collections.ron
         ├── path: String          directory (relative to config)
         ├── description: String   shown in list_sections
         ├── writable: bool        enables kb_write
+        ├── exclude: String[]     globs not to index, relative to path
         └── sections: SectionDef[]
               ├── prefix: String      matches first subdirectory
               └── description: String shown in list_sections
@@ -249,7 +251,7 @@ graph LR
 
 `get_document` does **not** return content from the search index. It:
 
-1. Looks up the document by path or title in the index
+1. Looks up the document by path or title in the index, within `collection` if given; a path or title matching more than one document is an error listing them
 2. Finds the owning collection's resolved path
 3. Reads the file fresh from disk
 4. Strips frontmatter and returns the body

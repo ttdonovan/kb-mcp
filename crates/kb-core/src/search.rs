@@ -237,13 +237,13 @@ fn rank_hits(
     // Map back to document index + apply scope filter
     let mut results = Vec::new();
     for (_, uri, score, snippet) in ranked {
-        let Some((_coll_name, rel_path)) = store::parse_uri(&uri) else {
+        let Some((coll_name, rel_path)) = store::parse_uri(&uri) else {
             continue;
         };
         let Some((doc_index, doc)) = documents
             .iter()
             .enumerate()
-            .find(|(_, d)| d.path == rel_path)
+            .find(|(_, d)| d.collection == coll_name && d.path == rel_path)
         else {
             continue;
         };

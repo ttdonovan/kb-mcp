@@ -8,6 +8,7 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
+use globset::{GlobBuilder, GlobSet, GlobSetBuilder};
 use serde::{Deserialize, Serialize};
 
 /// Raw configuration as deserialized from `collections.ron`.
@@ -46,6 +47,10 @@ pub struct CollectionDef {
     pub writable: bool,
     #[serde(default)]
     pub sections: Vec<SectionDef>,
+    /// Glob patterns, relative to the collection root, for files and
+    /// directories not to index (e.g. an mdBook's `SUMMARY.md`).
+    #[serde(default)]
+    pub exclude: Vec<String>,
 }
 
 /// Maps a directory prefix to a human-readable description for `list_sections` output.
@@ -70,11 +75,65 @@ pub struct ResolvedCollection {
     pub writable: bool,
     pub sections: Vec<SectionDef>,
     pub index_names: IndexNames,
+    pub exclude: Exclude,
+}
+
+/// A collection's compiled `exclude` patterns. Compiled once at config load,
+/// so a bad pattern fails startup instead of every scan.
+#[derive(Debug, Clone)]
+pub struct Exclude(GlobSet);
+
+impl Default for Exclude {
+    fn default() -> Self {
+        Self(GlobSet::empty())
+    }
+}
+
+impl Exclude {
+    /// `*` and `?` stop at `/`; `**` crosses directories.
+    ///
+    /// # Errors
+    ///
+    /// A pattern is not a valid glob.
+    pub fn new(patterns: &[String]) -> Result<Self> {
+        let mut builder = GlobSetBuilder::new();
+        for pattern in patterns {
+            // Matched paths never end in `/`, so `drafts/` would match nothing.
+            let trimmed = pattern.trim_end_matches('/');
+            if trimmed.is_empty() {
+                anyhow::bail!("invalid exclude pattern '{pattern}': empty");
+            }
+            let glob = GlobBuilder::new(trimmed)
+                .literal_separator(true)
+                .build()
+                .with_context(|| format!("invalid exclude pattern '{pattern}'"))?;
+            builder.add(glob);
+        }
+        Ok(Self(builder.build()?))
+    }
+
+    /// Whether `rel_path` (relative to the collection root) is excluded.
+    #[must_use]
+    pub fn is_match(&self, rel_path: &Path) -> bool {
+        self.0.is_match(rel_path)
+    }
+
+    /// Whether a scan skips `rel_path`: it or a directory above it matches.
+    #[must_use]
+    pub fn excludes(&self, rel_path: &Path) -> bool {
+        rel_path
+            .ancestors()
+            .any(|p| !p.as_os_str().is_empty() && self.is_match(p))
+    }
 }
 
 impl Config {
     /// Resolve relative paths against the config file's parent directory.
-    pub fn resolve(self, config_dir: &Path) -> ResolvedConfig {
+    ///
+    /// # Errors
+    ///
+    /// A collection's `exclude` pattern is not a valid glob.
+    pub fn resolve(self, config_dir: &Path) -> Result<ResolvedConfig> {
         let cache_dir = self
             .cache_dir
             .map_or_else(default_cache_dir, |s| config_dir.join(shellexpand(&s)));
@@ -86,21 +145,24 @@ impl Config {
             .map(|c| {
                 let path = config_dir.join(&c.path);
                 let path = path.canonicalize().unwrap_or(path);
-                ResolvedCollection {
+                let exclude =
+                    Exclude::new(&c.exclude).with_context(|| format!("collection '{}'", c.name))?;
+                Ok(ResolvedCollection {
                     name: c.name,
                     path,
                     description: c.description,
                     writable: c.writable,
                     sections: c.sections,
                     index_names,
-                }
+                    exclude,
+                })
             })
-            .collect();
+            .collect::<Result<_>>()?;
 
-        ResolvedConfig {
+        Ok(ResolvedConfig {
             cache_dir,
             collections,
-        }
+        })
     }
 }
 
@@ -115,7 +177,8 @@ impl Config {
 ///
 /// # Errors
 ///
-/// No config file is found, or the one found cannot be read or parsed as RON.
+/// No config file is found, the one found cannot be read or parsed as RON,
+/// or it has an invalid `exclude` pattern.
 pub fn load_config(explicit_path: Option<&Path>) -> Result<ResolvedConfig> {
     let (config_path, config_dir) = find_config(explicit_path)?;
     let content = std::fs::read_to_string(&config_path)
@@ -127,7 +190,9 @@ pub fn load_config(explicit_path: Option<&Path>) -> Result<ResolvedConfig> {
     {
         config.cache_dir = Some(dir);
     }
-    Ok(config.resolve(&config_dir))
+    config
+        .resolve(&config_dir)
+        .with_context(|| format!("invalid config: {}", config_path.display()))
 }
 
 fn find_config(explicit_path: Option<&Path>) -> Result<(PathBuf, PathBuf)> {
@@ -209,19 +274,21 @@ mod tests {
 
     #[test]
     fn relative_cache_dir_resolves_against_the_config_file() {
-        let resolved = config(Some("index")).resolve(Path::new("/srv/kb"));
+        let resolved = config(Some("index")).resolve(Path::new("/srv/kb")).unwrap();
         assert_eq!(resolved.cache_dir, PathBuf::from("/srv/kb/index"));
     }
 
     #[test]
     fn absolute_cache_dir_is_kept() {
-        let resolved = config(Some("/var/cache/kb")).resolve(Path::new("/srv/kb"));
+        let resolved = config(Some("/var/cache/kb"))
+            .resolve(Path::new("/srv/kb"))
+            .unwrap();
         assert_eq!(resolved.cache_dir, PathBuf::from("/var/cache/kb"));
     }
 
     #[test]
     fn missing_cache_dir_uses_the_default() {
-        let resolved = config(None).resolve(Path::new("/srv/kb"));
+        let resolved = config(None).resolve(Path::new("/srv/kb")).unwrap();
         assert_eq!(resolved.cache_dir, default_cache_dir());
     }
 }

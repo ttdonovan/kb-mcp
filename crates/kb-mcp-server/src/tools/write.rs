@@ -24,11 +24,11 @@ pub struct WriteParams {
     #[serde(default)]
     pub source: Option<String>,
     /// Optional subdirectory within the collection (e.g. "concepts/memory" or
-    /// "research/papers"). Created automatically if it doesn't exist. Files
+    /// "research/papers"), relative and without "..". Created automatically if it doesn't exist. Files
     /// written here appear under the corresponding section in `list_sections`.
     #[serde(default)]
     pub directory: Option<String>,
-    /// Optional filename (e.g. "cognitive-memory-model.md"). When omitted, a
+    /// Optional filename (e.g. "cognitive-memory-model.md"), a plain file name, without path separators. When omitted, a
     /// date-prefixed slug is generated from the title. Use this for structured
     /// hierarchies where date prefixes don't fit.
     #[serde(default)]
@@ -85,48 +85,39 @@ impl KbMcpServer {
             ]));
         }
 
-        let target_dir = if let Some(ref dir) = params.directory {
-            let resolved = collection.path.join(dir);
-            let canonical_base = collection
-                .path
-                .canonicalize()
-                .unwrap_or_else(|_| collection.path.clone());
-            if let Err(e) = std::fs::create_dir_all(&resolved) {
+        let target_dir = match kb_core::write::target_dir(collection, params.directory.as_deref()) {
+            Ok(dir) => dir,
+            Err(message) => {
                 return Ok(CallToolResult::error(vec![
-                    rmcp::model::ContentBlock::text(format!(
-                        "Failed to create directory '{dir}': {e}"
-                    )),
+                    rmcp::model::ContentBlock::text(message),
                 ]));
             }
-            let canonical_resolved = resolved.canonicalize().unwrap_or(resolved);
-            if !canonical_resolved.starts_with(&canonical_base) {
-                return Ok(CallToolResult::error(vec![
-                    rmcp::model::ContentBlock::text(format!(
-                        "Directory '{dir}' escapes the collection root. Use a relative path within the collection."
-                    )),
-                ]));
-            }
-            canonical_resolved
-        } else {
-            collection.path.clone()
         };
 
         let today = chrono::Local::now().format("%Y-%m-%d").to_string();
-        let base_name = if let Some(ref name) = params.filename {
-            if std::path::Path::new(name)
-                .extension()
-                .is_some_and(|ext| ext.eq_ignore_ascii_case("md"))
-            {
-                name.clone()
-            } else {
-                format!("{name}.md")
-            }
-        } else {
-            let slug = kb_core::write::slugify_title(&params.title);
-            format!("{today}-{slug}.md")
-        };
+        let base_name =
+            match kb_core::write::file_name(params.filename.as_deref(), &params.title, &today) {
+                Ok(name) => name,
+                Err(message) => {
+                    return Ok(CallToolResult::error(vec![
+                        rmcp::model::ContentBlock::text(message),
+                    ]));
+                }
+            };
 
-        let file_path = kb_core::write::find_available_path(&target_dir, &base_name);
+        let file_path = match kb_core::write::find_available_path(&target_dir, &base_name) {
+            Ok(path) => path,
+            Err(message) => {
+                return Ok(CallToolResult::error(vec![
+                    rmcp::model::ContentBlock::text(message),
+                ]));
+            }
+        };
+        if let Err(message) = kb_core::write::check_not_excluded(collection, &file_path) {
+            return Ok(CallToolResult::error(vec![
+                rmcp::model::ContentBlock::text(message),
+            ]));
+        }
         let rel_path = file_path
             .strip_prefix(&collection.path)
             .unwrap_or(&file_path)
@@ -150,9 +141,9 @@ impl KbMcpServer {
 
         let content = format!("{}# {}\n\n{}\n", frontmatter, params.title, params.body);
 
-        if let Err(e) = std::fs::write(&file_path, &content) {
+        if let Err(message) = kb_core::write::write_new(&file_path, &content) {
             return Ok(CallToolResult::error(vec![
-                rmcp::model::ContentBlock::text(format!("Failed to write file: {e}")),
+                rmcp::model::ContentBlock::text(message),
             ]));
         }
 

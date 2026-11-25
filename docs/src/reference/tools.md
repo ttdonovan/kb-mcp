@@ -37,6 +37,7 @@ Retrieve a document by path or title. Content is read fresh from disk.
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `path` | String | Yes | Document path or title |
+| `collection` | String | No | Collection to look in. A path or title that matches more than one document is an error listing the matches: pass `collection` when they are in different collections, or the path when one collection repeats a title |
 
 **Returns:** JSON with `path`, `title`, `tags`, `section`, `collection`, and `content`.
 
@@ -53,6 +54,7 @@ Saves 90%+ tokens on retrieval-heavy workflows.
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `path` | String | Yes | Document path or title |
+| `collection` | String | No | Collection to look in. A path or title that matches more than one document is an error listing the matches: pass `collection` when they are in different collections, or the path when one collection repeats a title |
 
 **Returns:** JSON with `path`, `title`, `tags`, `section`, `collection`,
 `frontmatter` (all fields), and `summary` (first paragraph).
@@ -73,13 +75,16 @@ and `filename` to specify an exact name without date prefix.
 | `tags` | List | No | Tags for frontmatter |
 | `status` | String | No | Status field for frontmatter |
 | `source` | String | No | Source field for frontmatter |
-| `directory` | String | No | Subdirectory within collection (e.g. "concepts/memory"). Created automatically. |
-| `filename` | String | No | Exact filename (e.g. "cognitive-memory-model.md"). Skips date prefix when provided. |
+| `directory` | String | No | Subdirectory within collection (e.g. "concepts/memory"), a relative path: not absolute, no `..`. Created automatically. |
+| `filename` | String | No | Exact filename (e.g. "cognitive-memory-model.md"), a plain file name: no path separators, not `.` or `..`. Skips date prefix when provided. |
 
 **Returns:** JSON with `path`, `collection`, `title`, and `tags`.
 
-**Errors:** Returns actionable error if collection is read-only, not found, or
-directory escapes the collection root.
+**Errors:** Returns actionable error if collection is read-only, not found,
+`directory` escapes the collection root (`..`, an absolute path, or a symlink
+out of the collection), `filename` is not a plain file name, no free name is left (the name and its
+`-2` to `-99` variants are taken), or the file would match the collection's
+`exclude` patterns (it would never be indexed).
 
 ## kb_digest
 

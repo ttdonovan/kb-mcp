@@ -13,8 +13,8 @@ Read cheaply first, in full only what matters:
 
 1. `kb_digest` or `list_sections` to see what the knowledge base covers, once per task.
 2. `search` with a few keywords. Narrow with `collection` or `scope` (a section prefix). It is BM25: use the words a note would contain, and try synonyms if the first query misses.
-3. `kb_context` on the promising results: frontmatter and the first paragraph, a fraction of the tokens.
-4. `get_document` only for the notes you need whole. It reads from disk, so it is always current.
+3. `kb_context` on the promising results, passing each result's `path` and `collection`: frontmatter and the first paragraph, a fraction of the tokens.
+4. `get_document` (with `path` and `collection`) only for the notes you need whole. It reads from disk, so it is always current.
 
 - `kb_query` filters by frontmatter (tag, status, created date, has sources) without a query.
 - `kb_health` lists quality problems: frontmatter that is not valid YAML (its fields are then ignored), missing dates or tags, stale notes, stubs, orphans, broken wiki-links.
@@ -27,7 +27,7 @@ Tool parameters: https://ttdonovan.github.io/kb-mcp/reference/tools.html
 ## Setting it up for a project
 
 1. Install `kb` and `kb-mcp`. Prebuilt binaries (Linux x86_64/arm64, macOS arm64/x86_64) with `SHA256SUMS` and build provenance are on each release: https://github.com/ttdonovan/kb-mcp/releases. Verify a download with `gh attestation verify <file> --repo ttdonovan/kb-mcp`. Or build from a tag: `cargo install --locked --git https://github.com/ttdonovan/kb-mcp --tag vX.Y.Z kb-cli kb-mcp-server`.
-2. Write `collections.ron` at the project root. Each collection has a `name`, a `path` (relative to the config file), a `description`, `writable` and optional `sections` (a directory prefix with a description). Start from the example: https://github.com/ttdonovan/kb-mcp/blob/main/collections.example.ron. Every field: https://ttdonovan.github.io/kb-mcp/reference/ron-schema.html
+2. Write `collections.ron` at the project root. Each collection has a `name`, a `path` (relative to the config file), a `description`, `writable`, optional `sections` (a directory prefix with a description) and optional `exclude` (globs not to index, such as an mdBook's `SUMMARY.md`). Start from the example: https://github.com/ttdonovan/kb-mcp/blob/main/collections.example.ron. Every field: https://ttdonovan.github.io/kb-mcp/reference/ron-schema.html
 3. Register the server in the project's `.mcp.json`:
 
    ```json

@@ -23,6 +23,7 @@
             path: "docs/src",
             description: "Technical book (usage guides, reference, development)",
             writable: false,
+            exclude: ["SUMMARY.md"],
             sections: [
                 (prefix: "usage", description: "Configuration, MCP server, and CLI guides"),
                 (prefix: "reference", description: "Tool and RON schema reference"),
@@ -34,6 +35,7 @@
             path: "book/src",
             description: "Product book (introduction, goals, roadmap, landscape)",
             writable: false,
+            exclude: ["SUMMARY.md"],
             sections: [
                 (prefix: "landscape", description: "Related projects and how kb-mcp compares"),
             ],

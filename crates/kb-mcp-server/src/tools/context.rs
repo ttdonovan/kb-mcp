@@ -9,6 +9,8 @@ use crate::server::KbMcpServer;
 pub struct ContextParams {
     /// Path to the document or document title
     pub path: String,
+    /// Collection to look in; needed when the path or title is in more than one
+    pub collection: Option<String>,
 }
 
 pub fn router() -> rmcp::handler::server::router::tool::ToolRouter<KbMcpServer> {
@@ -27,17 +29,16 @@ impl KbMcpServer {
     ) -> Result<CallToolResult, rmcp::ErrorData> {
         let index = self.index.read().await;
         let json = index
-            .find_by_path(&params.path)
-            .or_else(|| index.find_by_title(&params.path))
+            .lookup(&params.path, params.collection.as_deref())
             .map(kb_core::format::format_context);
         drop(index);
 
         match json {
-            Some(json) => Ok(CallToolResult::success(vec![
+            Ok(json) => Ok(CallToolResult::success(vec![
                 rmcp::model::ContentBlock::text(json),
             ])),
-            None => Ok(CallToolResult::error(vec![
-                rmcp::model::ContentBlock::text(format!("Document not found: {}", params.path)),
+            Err(message) => Ok(CallToolResult::error(vec![
+                rmcp::model::ContentBlock::text(message),
             ])),
         }
     }
