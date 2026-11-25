@@ -5,7 +5,7 @@
 //! stdout, errors to stderr.
 
 use std::fmt::Write as _;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
@@ -84,10 +84,10 @@ enum Command {
         /// Optional source field
         #[arg(long)]
         source: Option<String>,
-        /// Subdirectory within the collection (e.g. "concepts/memory")
+        /// Subdirectory within the collection (e.g. "concepts/memory"), relative and without ".."
         #[arg(long)]
         directory: Option<String>,
-        /// Explicit filename (e.g. "cognitive-memory-model.md"). Skips date prefix.
+        /// Explicit filename (e.g. "cognitive-memory-model.md"), a plain file name. Skips date prefix.
         #[arg(long)]
         filename: Option<String>,
     },
@@ -324,41 +324,10 @@ fn write(collections: &[ResolvedCollection], args: &WriteArgs) -> Result<(), Str
         return Err(format!("Collection '{coll_name}' is read-only"));
     }
 
-    let target_dir = if let Some(ref dir) = args.directory {
-        let resolved = collection.path.join(dir);
-        let canonical_base = collection
-            .path
-            .canonicalize()
-            .unwrap_or_else(|_| collection.path.clone());
-        std::fs::create_dir_all(&resolved)
-            .map_err(|e| format!("Failed to create directory '{dir}': {e}"))?;
-        let canonical_resolved = resolved.canonicalize().unwrap_or(resolved);
-        if !canonical_resolved.starts_with(&canonical_base) {
-            return Err(format!("Directory '{dir}' escapes the collection root"));
-        }
-        canonical_resolved
-    } else {
-        collection.path.clone()
-    };
-
+    let target_dir = kb_core::write::target_dir(collection, args.directory.as_deref())?;
     let today = chrono::Local::now().format("%Y-%m-%d").to_string();
-    let base_name = args.filename.as_ref().map_or_else(
-        || {
-            let slug = kb_core::write::slugify_title(&args.title);
-            format!("{today}-{slug}.md")
-        },
-        |name| {
-            if Path::new(name)
-                .extension()
-                .is_some_and(|ext| ext.eq_ignore_ascii_case("md"))
-            {
-                name.clone()
-            } else {
-                format!("{name}.md")
-            }
-        },
-    );
-    let file_path = kb_core::write::find_available_path(&target_dir, &base_name);
+    let base_name = kb_core::write::file_name(args.filename.as_deref(), &args.title, &today)?;
+    let file_path = kb_core::write::find_available_path(&target_dir, &base_name)?;
     kb_core::write::check_not_excluded(collection, &file_path)?;
 
     // Writing to a String cannot fail.
@@ -377,7 +346,7 @@ fn write(collections: &[ResolvedCollection], args: &WriteArgs) -> Result<(), Str
     frontmatter.push_str("---\n\n");
 
     let content = format!("{frontmatter}# {}\n\n{}\n", args.title, args.body);
-    std::fs::write(&file_path, &content).map_err(|e| format!("Failed to write: {e}"))?;
+    kb_core::write::write_new(&file_path, &content)?;
 
     let rel = file_path
         .strip_prefix(&collection.path)

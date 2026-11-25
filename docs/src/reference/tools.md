@@ -75,13 +75,15 @@ and `filename` to specify an exact name without date prefix.
 | `tags` | List | No | Tags for frontmatter |
 | `status` | String | No | Status field for frontmatter |
 | `source` | String | No | Source field for frontmatter |
-| `directory` | String | No | Subdirectory within collection (e.g. "concepts/memory"). Created automatically. |
-| `filename` | String | No | Exact filename (e.g. "cognitive-memory-model.md"). Skips date prefix when provided. |
+| `directory` | String | No | Subdirectory within collection (e.g. "concepts/memory"), a relative path: not absolute, no `..`. Created automatically. |
+| `filename` | String | No | Exact filename (e.g. "cognitive-memory-model.md"), a plain file name: no path separators, not `.` or `..`. Skips date prefix when provided. |
 
 **Returns:** JSON with `path`, `collection`, `title`, and `tags`.
 
 **Errors:** Returns actionable error if collection is read-only, not found,
-directory escapes the collection root, or the file would match the collection's
+`directory` escapes the collection root (`..`, an absolute path, or a symlink
+out of the collection), `filename` is not a plain file name, no free name is left (the name and its
+`-2` to `-99` variants are taken), or the file would match the collection's
 `exclude` patterns (it would never be indexed).
 
 ## kb_digest
