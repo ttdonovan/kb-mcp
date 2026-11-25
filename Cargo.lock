@@ -1463,7 +1463,7 @@ dependencies = [
 
 [[package]]
 name = "kb-cli"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "anyhow",
  "chrono",
@@ -1475,7 +1475,7 @@ dependencies = [
 
 [[package]]
 name = "kb-core"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "anyhow",
  "blake3",
@@ -1494,7 +1494,7 @@ dependencies = [
 
 [[package]]
 name = "kb-mcp-server"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "anyhow",
  "chrono",
