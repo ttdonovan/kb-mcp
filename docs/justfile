@@ -18,4 +18,4 @@ check:
 setup:
     cargo install --locked mdbook --version 0.5.4
     cargo install --locked mdbook-mermaid --version 0.17.1
-    cargo install --locked --git https://github.com/ttdonovan/mdbook-llms --tag v0.4.0
+    cargo install --locked --git https://github.com/ttdonovan/mdbook-llms --tag v0.4.1
