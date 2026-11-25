@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [0.3.2](https://github.com/ttdonovan/kb-mcp/compare/v0.3.1...v0.3.2) - 2026-11-25
+
+### Added
+
+- add an exclude list of globs to a collection, for files and directories not to index, such as an mdBook's SUMMARY.md; kb_write refuses a file it would exclude.
+
+### Fixed
+
+- keep kb_write inside its collection: refuse a filename that is not a plain name and a directory that climbs out or follows a symlink out of the collection, before creating anything, and create the file exclusively so it never follows a symlink or overwrites a note.
+- keep documents that share a path or title across collections apart: search reports each hit under its own collection, and get_document and kb_context take a collection and report an ambiguous match instead of returning the first.
+
 ## [0.3.1](https://github.com/ttdonovan/kb-mcp/compare/v0.3.0...v0.3.1) - 2026-11-20
 
 ### Added
